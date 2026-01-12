@@ -106,7 +106,7 @@ jobs:
         env:
           REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
         with:
-          inlineScript: | 
+          inlineScript: |
             REGISTRY_NAME=${REGISTRY_URL%.azurecr.io}
             az acr login --name $REGISTRY_NAME
 
