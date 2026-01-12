@@ -104,7 +104,7 @@ jobs:
       - name: Log in to container registry
         uses: azure/CLI@v2
         env:
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }} 
+          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
         with:
           inlineScript: | 
             REGISTRY_NAME=${REGISTRY_URL%.azurecr.io}
