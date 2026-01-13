@@ -20,7 +20,7 @@
     "fstream": "1.0.12",
     "github-markdown-css": "5.1.0",
     "lodash": "4.17.21",
-    "mkdirp": "1.0.4",
+    "mkdirp": "3.0.1",
     "sass": "1.52.3",
     "tar": "6.1.11"
   }
