@@ -10,7 +10,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.12" />
     <PackageVersion Include="Microsoft.DotNet.Interactive.CSharpProject" Version="1.0.0-beta.25059.3" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.42.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
