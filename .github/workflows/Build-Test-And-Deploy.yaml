@@ -133,7 +133,7 @@ jobs:
           CONTAINER_APP_ENVIRONMENT: ${{ vars.CONTAINER_APP_ENVIRONMENT }}
           REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
           SUBSCRIPTION_ID: ${{ secrets.ESSENTIALCSHARP_SUBSCRIPTION_ID }}
-          MANAGED_IDENTITY_ID: ${{ secrets.MANAGED_IDENTITY_ID }}
+          MANAGED_IDENTITY_ID: ${{ vars.MANAGED_IDENTITY_ID }}
         with:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
