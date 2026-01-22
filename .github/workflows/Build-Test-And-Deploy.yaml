@@ -138,6 +138,7 @@ jobs:
           inlineScript: |
             IDENTITY_ID=$(az identity show -n ${{ vars.MANAGED_IDENTITY_ID }} -g ${{ vars.RESOURCEGROUP }} --query id -o tsv)
             az config set extension.use_dynamic_install=yes_without_prompt
+            az extension add --name containerapp --upgrade
             az containerapp up \
               -n $CONTAINER_APP_NAME \
               -g $RESOURCEGROUP \
