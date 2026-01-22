@@ -144,7 +144,7 @@ jobs:
               --environment $CONTAINER_APP_ENVIRONMENT \
               --registry-server $REGISTRY_URL \
               --ingress external \
-              --target-port 8080 \
+              --target-port 8080
             az containerapp identity assign -n $CONTAINER_APP_NAME -g $RESOURCEGROUP --user-assigned $MANAGED_IDENTITY_ID
 
       - name: Logout of Azure CLI
