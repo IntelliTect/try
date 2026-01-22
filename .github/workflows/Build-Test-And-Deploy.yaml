@@ -148,7 +148,8 @@ jobs:
               --ingress external \
               --user-assigned $IDENTITY_ID \
               --registry-identity $IDENTITY_ID \
-              --target-port 80
+              --target-port 80 \
+              --debug
 
     #   - name: Assign MI to Container App
     #     uses: azure/CLI@v2
