@@ -132,6 +132,8 @@ jobs:
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
           CONTAINER_APP_ENVIRONMENT: ${{ vars.CONTAINER_APP_ENVIRONMENT }}
           REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
+          SUBSCRIPTION_ID: ${{ secrets.ESSENTIALCSHARP_SUBSCRIPTION_ID }}
+          MANAGED_IDENTITY_ID: ${{ vars.MANAGED_IDENTITY_ID }}
         with:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
@@ -142,6 +144,7 @@ jobs:
               --environment $CONTAINER_APP_ENVIRONMENT \
               --registry-server $REGISTRY_URL \
               --ingress external \
+              --registry-identity /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCEGROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$MANAGED_IDENTITY_ID \
               --target-port 80
 
       - name: Assign MI to Container App
