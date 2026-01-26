@@ -104,21 +104,28 @@ jobs:
           docker load --input ${{ github.workspace }}/tryimage.tar
           docker image ls -a
 
-      - name: Get ACR access token
-        id: acr-token
-        env:
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
-        run: |
-          TOKEN=$(az acr login --name ${REGISTRY_URL%.azurecr.io} --expose-token --output tsv --query accessToken)
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      # - name: Get ACR access token
+      #   id: acr-token
+      #   env:
+      #     REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
+      #   run: |
+      #     TOKEN=$(az acr login --name ${REGISTRY_URL%.azurecr.io} --expose-token --output tsv --query accessToken)
+      #     echo "::add-mask::$TOKEN"
+      #     echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      # - name: Log in to container registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ vars.DEVCONTAINER_REGISTRY }}
+      #     username: 00000000-0000-0000-0000-000000000000
+      #     password: ${{ steps.acr-token.outputs.token }}
 
       - name: Log in to container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.DEVCONTAINER_REGISTRY }}
-          username: 00000000-0000-0000-0000-000000000000
-          password: ${{ steps.acr-token.outputs.token }}
+          username: ${{ secrets.ESSENTIALCSHARP_ACR_USERNAME }}
+          password: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
 
       - name: Push Image to Container Registry
         env:
@@ -137,11 +144,7 @@ jobs:
           ACR_PASSWORD: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
         with:
           inlineScript: |
-            # IDENTITY_ID=$(az identity show -n ${{ vars.MANAGED_IDENTITY_ID }} -g ${{ vars.RESOURCEGROUP }} --query id -o tsv)
-            # IDENTITY_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/EssentialCSharp-Dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ecs-web-dev-app-identity"
-
             az config set extension.use_dynamic_install=yes_without_prompt
-            # az extension add --name containerapp --upgrade
             az containerapp up \
               -n $CONTAINER_APP_NAME \
               -g $RESOURCEGROUP \
@@ -151,8 +154,6 @@ jobs:
               --ingress external \
               --registry-username $ACR_USERNAME \
               --registry-password $ACR_PASSWORD \
-              # --user-assigned $IDENTITY_ID \
-              # --registry-identity $IDENTITY_ID \
               --target-port 80 \
               --debug
 
