@@ -35,7 +35,6 @@ jobs:
 
       - name: Run .NET Tests
         id: run-dotnet-tests
-        continue-on-error: true
         run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
