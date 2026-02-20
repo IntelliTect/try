@@ -25,5 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up environment
-        uses: ./.github/actions/setup
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-node
+
+      - name: Set up .NET environment
+        uses: ./.github/actions/setup-dotnet

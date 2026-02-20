@@ -19,8 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up environment
-        uses: ./.github/actions/setup
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-node
+
+      - name: Set up .NET environment
+        uses: ./.github/actions/setup-dotnet
 
       - name: Run ciTest for microsoft-trydotnet
         working-directory: src/microsoft-trydotnet
@@ -83,8 +86,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up environment
-        uses: ./.github/actions/setup
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-node
+
+      - name: Set up .NET environment
+        uses: ./.github/actions/setup-dotnet
 
       - name: Run .NET Tests
         id: run-dotnet-tests
@@ -110,8 +116,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up environment
-        uses: ./.github/actions/setup
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-node
+
+      - name: Set up .NET environment
+        uses: ./.github/actions/setup-dotnet
 
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests

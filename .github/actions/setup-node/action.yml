@@ -1,8 +1,8 @@
-name: 'Setup Environment'
-description: 'Set up Node.js, install npm dependencies, set up .NET SDK, configure dependency caching, restore, and optionally build'
+name: 'Setup Node.js Environment'
+description: 'Set up Node.js, install npm dependencies, and optionally build all JS packages'
 inputs:
   build:
-    description: 'Whether to run builds (npm buildProd and dotnet build) after install/restore'
+    description: 'Whether to run npm buildProd after install'
     required: false
     default: 'true'
 runs:
@@ -58,28 +58,3 @@ runs:
       shell: bash
       working-directory: src/microsoft-learn-mock
       run: npm run buildProd
-
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        global-json-file: global.json
-
-    - name: Set up dependency caching for faster builds
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.nuget/packages
-          ${{ github.workspace }}/**/obj/project.assets.json
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          ${{ runner.os }}-nuget-
-
-    - name: Restore .NET dependencies
-      shell: bash
-      run: dotnet restore
-
-    - name: Build with dotnet
-      if: inputs.build == 'true'
-      shell: bash
-      run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
