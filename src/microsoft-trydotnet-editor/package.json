@@ -55,7 +55,7 @@
   "dependencies": {
     "@microsoft/polyglot-notebooks": "1.0.441801",
     "monaco-editor": "0.33.0",
-    "rxjs": "^7.8.2",
+    "rxjs": "7.8.2",
     "uuid": "7.0.0"
   },
   "mocha": {
