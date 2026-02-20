@@ -108,10 +108,75 @@ jobs:
           name: tryimage
           path: ${{ github.workspace }}/tryimage.tar
 
+  integration-tests:
+    # Integration tests use Playwright and are gated behind RunIntegrationTests=true.
+    # IntegrationTestFactAttribute explicitly skips these tests on Linux, so a
+    # Windows runner is required to actually execute them.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'src/**/package-lock.json'
+
+      - name: Build microsoft-trydotnet
+        working-directory: src/microsoft-trydotnet
+        run: |
+          npm ci
+          npm run buildProd
+
+      - name: Build microsoft-trydotnet-editor
+        working-directory: src/microsoft-trydotnet-editor
+        run: |
+          npm ci
+          npm run buildProd
+
+      - name: Build microsoft-trydotnet-styles
+        working-directory: src/microsoft-trydotnet-styles
+        run: |
+          npm ci
+          npm run buildProd
+
+      - name: Build microsoft-learn-mock
+        working-directory: src/microsoft-learn-mock
+        run: |
+          npm ci
+          npm run buildProd
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Set up dependency caching for faster builds
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore with dotnet
+        run: dotnet restore
+
+      - name: Build with dotnet
+        run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
+
+      - name: Run .NET Integration Tests
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m
+        env:
+          RunIntegrationTests: true
+          POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
+
   deploy-development:
     if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: [build-and-test, integration-tests]
     environment:
       name: "Development"
     permissions:
