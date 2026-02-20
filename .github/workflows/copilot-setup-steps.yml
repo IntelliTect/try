@@ -7,9 +7,13 @@ on:
   push:
     paths:
       - .github/workflows/copilot-setup-steps.yml
+      - .github/actions/setup-node/action.yml
+      - .github/actions/setup-dotnet/action.yml
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
+      - .github/actions/setup-node/action.yml
+      - .github/actions/setup-dotnet/action.yml
 
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
