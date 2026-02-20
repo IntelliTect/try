@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Playwright;
 using Pocket.For.Xunit;
 using Xunit.Abstractions;
