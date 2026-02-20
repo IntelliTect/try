@@ -29,7 +29,7 @@ describe("a user", () => {
             let awaitableSession = createSessionWithProjectAndOpenDocument(
                 configuration,
                 [editorIFrame],
-                dom.window as any as Window,
+                dom.window as unknown as Window,
                 project,
                 "program.cs");
 
@@ -66,7 +66,7 @@ describe("a user", () => {
             let awaitableSession = createSessionWithProjectAndOpenDocument(
                 configuration,
                 [editorIFrame],
-                dom.window as any as Window,
+                dom.window as unknown as Window,
                 project,
                 "program.cs");
 

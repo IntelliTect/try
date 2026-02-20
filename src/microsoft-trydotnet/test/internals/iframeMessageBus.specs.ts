@@ -27,7 +27,7 @@ describe("a message bus", () => {
             }
         });
 
-        let bus = new IFrameMessageBus(iframe, dom.window as any as Window);
+        let bus = new IFrameMessageBus(iframe, dom.window as unknown as Window);
 
         bus.post({ type: RUN_REQUEST, requestId: "0" });
     });
@@ -40,7 +40,7 @@ describe("a message bus", () => {
 
         dom.window.postMessage({ type: RUN_RESPONSE }, defaultConfiguration.hostOrigin!);
 
-        let bus = new IFrameMessageBus(iframe, dom.window as any as Window);
+        let bus = new IFrameMessageBus(iframe, dom.window as unknown as Window);
 
         bus.subscribe({
             next: (_message) => {
@@ -57,7 +57,7 @@ describe("a message bus", () => {
 
         dom.window.postMessage({ type: HOST_EDITOR_READY_EVENT }, defaultConfiguration.hostOrigin!);
 
-        let bus = new IFrameMessageBus(iframe, dom.window as any as Window);
+        let bus = new IFrameMessageBus(iframe, dom.window as unknown as Window);
 
         bus.subscribe({
             next: (_message) => {
