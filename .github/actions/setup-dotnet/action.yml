@@ -31,4 +31,4 @@ runs:
     - name: Build with dotnet
       if: inputs.build == 'true'
       shell: bash
-      run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
+      run: dotnet build -p:ContinuousIntegrationBuild=True --configuration Release --no-restore
