@@ -129,7 +129,7 @@ jobs:
           TRYDOTNET_PREBUILDS_PATH: ${{ github.workspace }}/artifacts/trydotnet-prebuilds
 
       - name: Convert TRX to Playlist
-        if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
+        if: ${{ steps.run-dotnet-integration-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
           trx-file-path: './TestResults/*.trx'
