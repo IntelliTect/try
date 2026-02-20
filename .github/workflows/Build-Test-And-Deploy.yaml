@@ -76,12 +76,14 @@ jobs:
         run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
 
       - name: Run .NET Tests
+        id: run-dotnet-tests
+        continue-on-error: true
         run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
       - name: Convert TRX to Playlist
-        if: always()
+        if: ${{ steps.run-dotnet-tests.outcome == 'failure' }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
           trx-file-path: './TestResults/*.trx'
@@ -177,12 +179,14 @@ jobs:
         run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
 
       - name: Run .NET Tests
+        id: run-dotnet-tests
+        continue-on-error: true
         run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
       - name: Convert TRX to Playlist
-        if: always()
+        if: ${{ steps.run-dotnet-tests.outcome == 'failure' }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
           trx-file-path: './TestResults/*.trx'
@@ -249,6 +253,8 @@ jobs:
         run: dotnet build -p:ContinuousIntegrationBuild=True -p:ReleaseDateAttribute=True --configuration Release --no-restore
 
       - name: Run .NET Integration Tests
+        id: run-dotnet-integration-tests
+        continue-on-error: true
         run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           RunIntegrationTests: true
@@ -256,7 +262,7 @@ jobs:
           TRYDOTNET_PREBUILDS_PATH: ${{ github.workspace }}/artifacts/trydotnet-prebuilds
 
       - name: Convert TRX to Playlist
-        if: always()
+        if: ${{ steps.run-dotnet-integration-tests.outcome == 'failure' }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
           trx-file-path: './TestResults/*.trx'
