@@ -13,8 +13,8 @@ export function createReadySession(configuration: Configuration, editorIFrame: H
 
 export function createReadySessionWithMultipleEditors(configuration: Configuration, editorIFrames: HTMLIFrameElement[], window: DOMWindow): Promise<ISession> {
     let awaitableSession = createSession(configuration, editorIFrames, window as unknown as Window);
-    for (let editorIframe of editorIFrames) {
-        notifyEditorReadyWithId(configuration, window, editorIframe.dataset.trydotnetEditorId!);
+    for (let editorIFrame of editorIFrames) {
+        notifyEditorReadyWithId(configuration, window, editorIFrame.dataset.trydotnetEditorId!);
     }
     return awaitableSession;
 }
