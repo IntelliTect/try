@@ -117,20 +117,12 @@ footer {
   }
 }
 
+.code-container,
 .code-container-inline {
   position: relative;
   margin-top: 1em;
   margin-bottom: 1em;
-  padding: 01px;
-  border: 1px solid #ab9ce0;
-  border-left: 4px solid #ab9ce0;
-}
-
-.code-container {
-  position: relative;
-  margin-top: 1em;
-  margin-bottom: 1em;
-  padding: 01px;
+  padding: 1px;
   border: 1px solid #ab9ce0;
   border-left: 4px solid #ab9ce0;
 }
