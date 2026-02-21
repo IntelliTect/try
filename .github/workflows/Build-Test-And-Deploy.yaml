@@ -43,9 +43,9 @@ jobs:
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'linux-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "linux-test-playlists"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -101,23 +101,23 @@ jobs:
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'windows-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "windows-test-playlists"
 
   integration-tests:
     strategy:
-        fail-fast: false
-        matrix:
-            os: [windows-latest, ubuntu-latest, macos-latest]
-            browser: [chromium, firefox, webkit]
-            exclude:
-              - os: windows-latest
-                browser: webkit
-              - os: ubuntu-latest
-                browser: webkit
-              - os: macos-latest
-                browser: firefox
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+        exclude:
+          - os: windows-latest
+            browser: webkit
+          - os: ubuntu-latest
+            browser: webkit
+          - os: macos-latest
+            browser: firefox
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -138,14 +138,15 @@ jobs:
           RunIntegrationTests: true
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
           TRYDOTNET_PREBUILDS_PATH: ${{ github.workspace }}/artifacts/trydotnet-prebuilds
+          Playwright_BrowserName: ${{ matrix.browser }}
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-integration-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'integration-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "integration-test-playlists"
 
   deploy-development:
     if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'

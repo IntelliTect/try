@@ -20,9 +20,24 @@ public class PlaywrightSession : IDisposable
 
     public IBrowser Browser { get; }
 
-    public static async Task<PlaywrightSession> StartAsync(string browserName = null)
+    public static async Task<PlaywrightSession> StartAsync(string? browserName = null)
     {
-        var exitCode = Playwright.Program.Main(["install"]);
+
+        string? selectedBrowser = browserName
+            ?? Environment.GetEnvironmentVariable("Playwright.BrowserName")
+            ?? Environment.GetEnvironmentVariable("Playwright_BrowserName");
+
+        int exitCode;
+        if (!string.IsNullOrWhiteSpace(selectedBrowser))
+        {
+            selectedBrowser = selectedBrowser.ToLowerInvariant();
+            exitCode = Playwright.Program.Main(["install", selectedBrowser]);
+        }
+        else
+        {
+            exitCode = Playwright.Program.Main(["install"]);
+            selectedBrowser = "chromium";
+        }
         if (exitCode is not 0)
         {
             throw new Exception($"Playwright exited with code {exitCode}");
@@ -36,8 +51,6 @@ public class PlaywrightSession : IDisposable
         {
             browserTypeLaunchOptions.Headless = false;
         }
-
-        var selectedBrowser = (browserName ?? Environment.GetEnvironmentVariable("Playwright.BrowserName") ?? "chromium").ToLowerInvariant();
 
         IBrowser browser = selectedBrowser switch
         {
