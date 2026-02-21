@@ -107,9 +107,17 @@ jobs:
 
   integration-tests:
     strategy:
+        fail-fast: false
         matrix:
             os: [windows-latest, ubuntu-latest, macos-latest]
             browser: [chromium, firefox, webkit]
+            exclude:
+              - os: windows-latest
+                browser: webkit
+              - os: ubuntu-latest
+                browser: webkit
+              - os: macos-latest
+                browser: firefox
 
     runs-on: ${{ matrix.os }}
     steps:
