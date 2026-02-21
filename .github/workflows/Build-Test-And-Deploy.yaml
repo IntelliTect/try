@@ -123,9 +123,6 @@ jobs:
         with:
           configuration: Debug
 
-      - name: Ensure browsers are installed
-        run: pwsh bin/Debug/net10.0/playwright.ps1 install --with-deps
-
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
         run: dotnet test --no-build --configuration Debug --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType=Integration -- Playwright.BrowserName=${{ matrix.browser }}
