@@ -5,6 +5,10 @@ inputs:
     description: 'Whether to run dotnet build after restore'
     required: false
     default: 'true'
+  configuration:
+    description: 'What configuration to run (e.g., Release or Debug)'
+    required: false
+    default: 'Release'
 runs:
   using: 'composite'
   steps:
@@ -31,4 +35,4 @@ runs:
     - name: Build with dotnet
       if: inputs.build == 'true'
       shell: bash
-      run: dotnet build -p:ContinuousIntegrationBuild=True --configuration Release --no-restore
+      run: dotnet build -p:ContinuousIntegrationBuild=True --configuration ${{ inputs.configuration }} --no-restore
