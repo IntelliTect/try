@@ -14,6 +14,7 @@ using Xunit.Abstractions;
 namespace Microsoft.TryDotNet.IntegrationTests;
 
 [LogToPocketLogger(FileNameEnvironmentVariable = "POCKETLOGGER_LOG_PATH")]
+[Trait("TestType", "Integration")]
 public class TryDotNetJsIntegrationTests : PlaywrightTestBase
 {
     public TryDotNetJsIntegrationTests(IntegratedServicesFixture services, ITestOutputHelper output) : base(services, output)

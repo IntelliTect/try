@@ -35,7 +35,7 @@ jobs:
 
       - name: Run .NET Tests
         id: run-dotnet-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType!=Integration
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Run .NET Tests
         id: run-dotnet-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType!=Integration
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
@@ -106,11 +106,12 @@ jobs:
           artifact-name: 'windows-test-playlists'
 
   integration-tests:
-    # Integration tests use Playwright and are gated behind RunIntegrationTests=true.
-    # IntegrationTestFactAttribute explicitly skips these tests on Linux, so a
-    # Windows runner is required to actually execute them.
-    runs-on: windows-latest
+    strategy:
+        matrix:
+            os: [windows-latest, ubuntu-latest, macos-latest]
+            browser: [chromium, firefox, webkit]
 
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
 
@@ -122,7 +123,7 @@ jobs:
 
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType=Integration
         env:
           RunIntegrationTests: true
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
@@ -224,8 +225,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.PRODCONTAINER_REGISTRY }}
-          username: ${{ secrets.ESSENTIALCSHARP_CLIENT_ID }}
-          password: ${{ secrets.ESSENTIALCSHARP_CLIENT_SECRET }}
+          username: ${{ secrets.ESSENTIALCSHARP_ACR_USERNAME }}
+          password: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
 
       - name: Push Image to Container Registry
         run: docker push --all-tags ${{ vars.PRODCONTAINER_REGISTRY }}/try
@@ -242,4 +243,4 @@ jobs:
         with:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
-            az containerapp up -n $CONTAINER_APP_NAME -g $RESOURCEGROUP --image $REGISTRY_URL/try:${{ github.sha }} --environment $CONTAINER_APP_ENVIRONMENT --registry-server $REGISTRY_URL --ingress external --target-port 80 --debug
+            az containerapp up -n $CONTAINER_APP_NAME -g $RESOURCEGROUP --image $REGISTRY_URL/try:${{ github.sha }} --environment $CONTAINER_APP_ENVIRONMENT --registry-server $REGISTRY_URL --ingress external --registry-username $ACR_USERNAME --registry-password $ACR_PASSWORD --target-port 80 --debug
