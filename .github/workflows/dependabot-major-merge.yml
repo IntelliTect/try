@@ -25,7 +25,7 @@ on:
       pr_number:
         description: 'PR number to enable auto-merge on (must have ai-approved-major-update label)'
         required: true
-        type: number
+        type: string
 
 permissions:
   contents: write
