@@ -3,7 +3,7 @@ name: "Dependabot Major Version Reviewer"
 description: "Reviews major-version Dependabot PRs daily and approves safe ones for auto-merge"
 
 on:
-  schedule: daily
+  schedule: weekly on tuesday
 
 engine: copilot
 
