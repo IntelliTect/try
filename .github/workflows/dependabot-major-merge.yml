@@ -1,0 +1,107 @@
+# Dependabot major-version merge executor
+#
+# This is a companion to the AI review workflow. It is triggered when the
+# AI agent adds the "ai-approved-major-update" label to a dependabot PR.
+#
+# DEFENSE-IN-DEPTH: This workflow does NOT blindly trust the label. Before
+# enabling auto-merge it re-verifies every safety condition that the AI
+# agent was supposed to check:
+#   1. The PR was opened by dependabot[bot].
+#   2. The label is exactly "ai-approved-major-update".
+#   3. ALL CI check-runs on the PR head SHA have passed (success/skipped).
+# If any condition fails, the workflow exits without merging.
+#
+# NOTE: The existing dependabot-auto-merge.yml already unconditionally
+# approves all dependabot PRs, so by the time this workflow runs the PR
+# already has an approval. This workflow only needs to enable auto-merge.
+
+name: Dependabot major-version auto-merge
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge-major:
+    runs-on: ubuntu-latest
+    # All three conditions must be true — label, author, and repository.
+    if: >-
+      github.event.label.name == 'ai-approved-major-update'
+      && github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.repository == 'IntelliTect/try'
+      && github.actor == 'github-actions[bot]'
+    steps:
+      # ── 1. Fetch dependabot PR metadata ────────────────────────────
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # ── 2. Verify this is a semver-major update ─────────────────────
+      - name: Verify semver-major update type
+        run: |
+          UPDATE_TYPE="${{ steps.metadata.outputs.update-type }}"
+          if [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
+            echo "::error::PR update-type is '$UPDATE_TYPE', not semver-major — refusing to merge."
+            exit 1
+          fi
+          echo "✅ Confirmed semver-major update."
+
+      # ── 3. Verify all CI checks passed ─────────────────────────────
+      # Re-verify check-run status as a defense-in-depth measure.
+      # The AI agent should have confirmed this before labeling, but we
+      # do not trust the label alone.
+      #
+      # IMPORTANT: We exclude this workflow's own job ("auto-merge-major")
+      # from the check-run list because while this step is executing, our
+      # own job's check run has conclusion=null (still running) and would
+      # incorrectly cause a "pending check" false positive.
+      - name: Verify all check-runs passed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching check-runs for SHA ${{ github.event.pull_request.head.sha }}..."
+
+          # per_page=100 ensures we don't silently miss checks beyond the default 30.
+          # We filter out our own job to avoid a self-referential false positive.
+          CHECK_RUNS=$(gh api \
+            "/repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name != "auto-merge-major")]')
+
+          TOTAL=$(echo "$CHECK_RUNS" | jq 'length')
+          echo "Found $TOTAL check-run(s) (excluding this job)."
+
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "::error::No check-runs found — refusing to merge without CI signals."
+            exit 1
+          fi
+
+          # Every check must have concluded with "success" or "skipped".
+          FAILED=$(echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != null)] | length')
+          PENDING=$(echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion == null)] | length')
+
+          if [ "$PENDING" -gt 0 ]; then
+            echo "::error::$PENDING check-run(s) are still pending — refusing to merge."
+            echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion == null)] | .[].name'
+            exit 1
+          fi
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::$FAILED check-run(s) did not succeed — refusing to merge."
+            echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped")] | .[] | {name, conclusion}'
+            exit 1
+          fi
+
+          echo "✅ All $TOTAL check-run(s) passed (success or skipped)."
+
+      # ── 4. Enable auto-merge ───────────────────────────────────────
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GH_PAT_WORKFLOW }}
