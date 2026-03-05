@@ -96,7 +96,7 @@ For each candidate PR, perform the following checks in order. If any check fails
    - Single package: "Bump <package> from <old> to <new>" — parse semver, only proceed if major version increased OR if this is a multi-package PR
    - Multi-package: "Bump <package> in <path>" with a branch name containing `/multi-` — these have multiple packages updated together and `fetch-metadata` returns null for `update-type`. **Always process these** regardless of version increment — the AI must analyze the diff to determine all version changes
    - If the title is a single-package bump where the major version has NOT increased (pure patch/minor), skip it — the existing auto-merge workflow handles those
-4. **CI status:** Use the `actions` toolset to retrieve check runs for the PR's head commit. Verify that every check run has a conclusion of `"success"` or `"skipped"`. If any check is still running, has failed, or is missing, skip this PR.
+4. **CI status:** Use the `actions` toolset to retrieve check runs for the PR's head commit. Verify that every check run has a conclusion of `"success"` or `"skipped"`. If the check-runs endpoint returns 0 results, also query workflow runs by head SHA (`GET /repos/IntelliTect/try/actions/runs?head_sha=<sha>`) — Dependabot PRs often register their CI only as workflow runs, not as check-run objects. At least one workflow run must exist and all must have `conclusion: "success"`. If any check or run has failed, is cancelled, or is still in-progress/pending, skip this PR entirely.
 
 ### Step 3: Verify the Diff is Version-Only
 
