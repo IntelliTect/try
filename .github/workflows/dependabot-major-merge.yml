@@ -78,16 +78,18 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # ── 2. Verify semver-major update type (label trigger only) ─────
-      - name: Verify semver-major update type
+      # ── 2. Verify semver-major or multi-package update type ─────────
+      - name: Verify update type
         if: github.event_name == 'pull_request'
         run: |
           UPDATE_TYPE="${{ steps.metadata.outputs.update-type }}"
-          if [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
-            echo "::error::PR update-type is '$UPDATE_TYPE', not semver-major — refusing to merge."
+          # Allow semver-major and null/empty (multi-package PRs return null).
+          # Pure patch/minor single-package PRs are handled by dependabot-auto-merge.yml.
+          if [ "$UPDATE_TYPE" != "version-update:semver-major" ] && [ -n "$UPDATE_TYPE" ]; then
+            echo "::error::PR update-type is '$UPDATE_TYPE' (not semver-major or multi-package) — refusing to merge."
             exit 1
           fi
-          echo "✅ Confirmed semver-major update."
+          echo "✅ Update type accepted: '${UPDATE_TYPE:-multi-package/unknown}'"
 
       # ── 3. Verify all CI checks passed ─────────────────────────────
       # IMPORTANT: We exclude this workflow's own job ("auto-merge-major")
