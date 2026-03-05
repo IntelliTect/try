@@ -113,31 +113,37 @@ jobs:
 
           if [ "$TOTAL" -eq 0 ]; then
             echo "No check-runs found — falling back to workflow runs API (common for Dependabot PRs)..."
-            WORKFLOW_RUNS=$(gh api \
+            ALL_RUNS=$(gh api \
               "/repos/${{ github.repository }}/actions/runs?head_sha=$PR_SHA&per_page=100" \
               --jq '[.workflow_runs[] | select(.name != "Dependabot major-version auto-merge")]')
-            WF_TOTAL=$(echo "$WORKFLOW_RUNS" | jq 'length')
-            echo "Found $WF_TOTAL workflow run(s) via actions/runs API."
+            WF_TOTAL=$(echo "$ALL_RUNS" | jq 'length')
+            echo "Found $WF_TOTAL total workflow run(s) via actions/runs API."
 
             if [ "$WF_TOTAL" -eq 0 ]; then
               echo "::error::No CI results found via either API — refusing to merge without CI signals."
               exit 1
             fi
 
-            WF_PENDING=$(echo "$WORKFLOW_RUNS" | jq '[.[] | select(.status != "completed")] | length')
-            WF_FAILED=$(echo "$WORKFLOW_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped")] | length')
+            # Take only the latest run per workflow (highest run_number), so a
+            # successful re-run after an earlier failure isn't blocked by the old failure.
+            LATEST_RUNS=$(echo "$ALL_RUNS" | jq '[group_by(.name)[] | sort_by(.run_number) | last]')
+            LATEST_TOTAL=$(echo "$LATEST_RUNS" | jq 'length')
+            echo "Evaluating $LATEST_TOTAL latest run(s) (one per workflow)."
+
+            WF_PENDING=$(echo "$LATEST_RUNS" | jq '[.[] | select(.status != "completed")] | length')
+            WF_FAILED=$(echo "$LATEST_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped")] | length')
 
             if [ "$WF_PENDING" -gt 0 ]; then
               echo "::error::$WF_PENDING workflow run(s) are still pending — refusing to merge."
-              echo "$WORKFLOW_RUNS" | jq '[.[] | select(.status != "completed")] | .[].name'
+              echo "$LATEST_RUNS" | jq '[.[] | select(.status != "completed")] | .[].name'
               exit 1
             fi
             if [ "$WF_FAILED" -gt 0 ]; then
               echo "::error::$WF_FAILED workflow run(s) did not succeed — refusing to merge."
-              echo "$WORKFLOW_RUNS" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped")] | .[] | {name, conclusion}'
+              echo "$LATEST_RUNS" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped")] | .[] | {name, conclusion}'
               exit 1
             fi
-            echo "✅ All $WF_TOTAL workflow run(s) passed (via actions/runs API)."
+            echo "✅ All $LATEST_TOTAL latest workflow run(s) passed (via actions/runs API)."
           else
             FAILED=$(echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != null)] | length')
             PENDING=$(echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion == null)] | length')
