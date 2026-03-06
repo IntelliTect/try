@@ -72,7 +72,7 @@ You will fetch and read external content from package registries, changelogs, re
 These rules are absolute and must never be bypassed:
 
 1. **Author verification:** ONLY process pull requests where the author login is EXACTLY `dependabot[bot]`. If the author is anyone else — even if the PR title looks like a Dependabot PR — skip it immediately. No exceptions.
-2. **CI status:** ONLY process pull requests where all check runs on the PR head commit have passed. Use `pull_request_read` with `method: "get_check_runs"` — skip PRs with any failing, cancelled, or pending checks, or zero check runs.
+2. **CI status:** ONLY process pull requests where all CI workflow runs on the PR branch have passed. Use `actions_list` with `method: "list_workflow_runs"` filtered by the PR's `head.ref` branch — skip PRs with any failing, cancelled, or pending latest runs, or zero runs.
 3. **Version bump scope:** Process PRs that are either (a) a major version bump for a single package, or (b) a multi-package PR (branch name contains `/multi-`). Skip single-package PRs that are pure patch or minor bumps — those are handled by the existing auto-merge workflow.
 4. **Skip already-processed PRs:** If a PR already has the label `ai-approved-major-update`, skip it.
 5. **Rate limit:** Process at most **10** PRs per run. Stop after reaching this limit.
@@ -96,7 +96,7 @@ For each candidate PR, perform the following checks in order. If any check fails
    - Single package: "Bump <package> from <old> to <new>" — parse semver, only proceed if major version increased OR if this is a multi-package PR
    - Multi-package: "Bump <package> in <path>" with a branch name containing `/multi-` — these have multiple packages updated together and `fetch-metadata` returns null for `update-type`. **Always process these** regardless of version increment — the AI must analyze the diff to determine all version changes
    - If the title is a single-package bump where the major version has NOT increased (pure patch/minor), skip it — the existing auto-merge workflow handles those
-4. **CI status:** Use `pull_request_read` with `method: "get_check_runs"` (from the `pull_requests` toolset) to get all check runs for the PR's head commit. Every check run must have a `conclusion` of `"success"` or `"skipped"`. At least one check run must exist. If there are zero check runs, or any check run has a conclusion of `"failure"`, `"cancelled"`, `"timed_out"`, or `"action_required"`, or any check run has `status != "completed"` (still running), skip the PR entirely.
+4. **CI status:** Use `actions_list` with `method: "list_workflow_runs"` (from the `actions` toolset), passing the PR's `head.ref` as the `branch` parameter and `repo: "try"`, `owner: "IntelliTect"`. This returns all workflow runs for the PR branch. Exclude runs where `name` is `"Dependabot Major Version Reviewer"` (our own workflow). Group the remaining runs by `name` and take only the **latest run per workflow** (highest `run_number`) — old failures followed by a successful re-run are fine. Every latest run must have `status: "completed"` and `conclusion: "success"` or `"skipped"`. At least one qualifying run must exist. If any latest run has `conclusion: "failure"`, `"cancelled"`, `"timed_out"`, or `"action_required"`, or is not yet completed, skip the PR and report why.
 
 ### Step 3: Verify the Diff is Version-Only
 
