@@ -35,7 +35,7 @@ jobs:
 
       - name: Run .NET Tests
         id: run-dotnet-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType!=Integration
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
@@ -43,9 +43,9 @@ jobs:
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'linux-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "linux-test-playlists"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -93,7 +93,7 @@ jobs:
 
       - name: Run .NET Tests
         id: run-dotnet-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType!=Integration
         env:
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
 
@@ -101,16 +101,25 @@ jobs:
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'windows-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "windows-test-playlists"
 
   integration-tests:
-    # Integration tests use Playwright and are gated behind RunIntegrationTests=true.
-    # IntegrationTestFactAttribute explicitly skips these tests on Linux, so a
-    # Windows runner is required to actually execute them.
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+        exclude:
+          - os: windows-latest
+            browser: webkit
+          - os: ubuntu-latest
+            browser: webkit
+          - os: macos-latest
+            browser: firefox
 
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
 
@@ -119,22 +128,25 @@ jobs:
 
       - name: Set up .NET environment
         uses: ./.github/actions/setup-dotnet
+        with:
+          configuration: Debug
 
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Debug --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults --filter TestType=Integration -- Playwright.BrowserName=${{ matrix.browser }}
         env:
           RunIntegrationTests: true
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
           TRYDOTNET_PREBUILDS_PATH: ${{ github.workspace }}/artifacts/trydotnet-prebuilds
+          Playwright_BrowserName: ${{ matrix.browser }}
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-integration-tests.outcome == 'failure' || failure() }}
         uses: BenjaminMichaelis/trx-to-vsplaylist@v3
         with:
-          trx-file-path: './TestResults/*.trx'
-          test-outcomes: 'Failed'
-          artifact-name: 'integration-test-playlists'
+          trx-file-path: "./TestResults/*.trx"
+          test-outcomes: "Failed"
+          artifact-name: "integration-test-playlists"
 
   deploy-development:
     if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
