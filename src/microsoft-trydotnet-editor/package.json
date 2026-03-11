@@ -37,7 +37,7 @@
     "eslint": "^8.57.0",
     "file-loader": "6.2.0",
     "html-webpack-plugin": "^5.6.6",
-    "jsdom": "^26.1.0",
+    "jsdom": "^28.1.0",
     "mocha": "11.7.5",
     "mocha-multi-reporters": "1.5.1",
     "mocha-trx-reporter": "3.3.1",
