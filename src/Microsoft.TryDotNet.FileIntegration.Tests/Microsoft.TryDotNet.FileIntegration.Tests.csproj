@@ -26,10 +26,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(DisableArcade)' == '1'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.TryDotNet.WasmRunner\Microsoft.TryDotNet.WasmRunner.csproj" />
     <ProjectReference Include="..\Microsoft.TryDotNet\Microsoft.TryDotNet.csproj" />
