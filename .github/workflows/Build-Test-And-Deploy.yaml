@@ -178,7 +178,7 @@ jobs:
         run: docker push --all-tags $REGISTRY_URL/try
 
       - name: Create and Deploy to Container App
-        uses: azure/CLI@v2
+        uses: azure/CLI@v3
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
@@ -231,7 +231,7 @@ jobs:
         run: docker push --all-tags ${{ vars.PRODCONTAINER_REGISTRY }}/try
 
       - name: Create and Deploy to Container App
-        uses: azure/CLI@v2
+        uses: azure/CLI@v3
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
