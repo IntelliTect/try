@@ -7,7 +7,7 @@
     <PackageVersion Include="Assent" Version="3.0.1" />
     <PackageVersion Include="coverlet.collector" Version="8.0.1" />
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.6" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.6" />
