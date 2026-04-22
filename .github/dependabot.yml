@@ -30,6 +30,13 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    ignore:
+      # This action is embedded into dependabot-major-review.lock.yml via
+      # `gh aw compile`. Dependabot SHA bumps bypass the compile step and
+      # silently break the compile-time/runtime contract. To update, upgrade
+      # the gh-aw CLI and rerun:
+      #   gh aw compile .github/workflows/dependabot-major-review.md
+      - dependency-name: "github/gh-aw-actions/setup"
 
   # npm - microsoft-trydotnet
   - package-ecosystem: "npm"
