@@ -12,6 +12,7 @@ using Xunit.Abstractions;
 namespace Microsoft.TryDotNet.IntegrationTests;
 
 [LogToPocketLogger(FileNameEnvironmentVariable = "POCKETLOGGER_LOG_PATH")]
+[Trait("TestType", "Integration")]
 public class WasmRunnerTests : PlaywrightTestBase
 {
     public WasmRunnerTests(IntegratedServicesFixture services, ITestOutputHelper output) : base(services, output)

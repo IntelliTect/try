@@ -20,9 +20,24 @@ public class PlaywrightSession : IDisposable
 
     public IBrowser Browser { get; }
 
-    public static async Task<PlaywrightSession> StartAsync()
+    public static async Task<PlaywrightSession> StartAsync(string? browserName = null)
     {
-        var exitCode = Playwright.Program.Main(["install", "chromium"]);
+
+        string? selectedBrowser = browserName
+            ?? Environment.GetEnvironmentVariable("Playwright.BrowserName")
+            ?? Environment.GetEnvironmentVariable("Playwright_BrowserName");
+
+        int exitCode;
+        if (!string.IsNullOrWhiteSpace(selectedBrowser))
+        {
+            selectedBrowser = selectedBrowser.ToLowerInvariant();
+            exitCode = Playwright.Program.Main(["install", selectedBrowser]);
+        }
+        else
+        {
+            exitCode = Playwright.Program.Main(["install"]);
+            selectedBrowser = "chromium";
+        }
         if (exitCode is not 0)
         {
             throw new Exception($"Playwright exited with code {exitCode}");
@@ -37,7 +52,13 @@ public class PlaywrightSession : IDisposable
             browserTypeLaunchOptions.Headless = false;
         }
 
-        var browser = await session.Chromium.LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser");
+        IBrowser browser = selectedBrowser switch
+        {
+            "chromium" => await session.Chromium.LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser"),
+            "firefox" => await session.Firefox.LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser"),
+            "webkit" => await session.Webkit.LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser"),
+            _ => throw new ArgumentException($"Unknown browser '{selectedBrowser}'. Valid values: chromium, firefox, webkit.")
+        };
 
         return new PlaywrightSession(session, browser);
     }
