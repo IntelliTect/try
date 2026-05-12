@@ -59,11 +59,12 @@ jobs:
           tags: temp-pr-validation
           file: ./Dockerfile
 
+      # Only build for dev registry — prod gets the image via az acr import in deploy-production
       - name: Build Container Image
         if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
         uses: docker/build-push-action@v7
         with:
-          tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest,${{ vars.PRODCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.PRODCONTAINER_REGISTRY }}/try:latest
+          tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest
           file: ./Dockerfile
           context: .
           outputs: type=docker,dest=${{ github.workspace }}/tryimage.tar
@@ -173,25 +174,19 @@ jobs:
           REGISTRY="${{ vars.DEVCONTAINER_REGISTRY }}"
           az acr login --name "${REGISTRY%.azurecr.io}"
 
-      - name: Push Image to Container Registry
-        env:
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
-        run: docker push --all-tags $REGISTRY_URL/try
+      - name: Push Image to Dev Container Registry
+        run: docker push --all-tags ${{ vars.DEVCONTAINER_REGISTRY }}/try
 
-      - name: Configure Container App Identity and Registry
-        uses: azure/CLI@v3
+      - name: Deploy to Container App
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
-        with:
-          inlineScript: |
-            # Container app must already exist; use az containerapp up manually to bootstrap if needed
-            az extension add --name containerapp --upgrade
-            az containerapp identity assign --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP --user-assigned ${{ secrets.TRY_UAMI_RESOURCE_ID }}
-            az containerapp registry set --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP --server $REGISTRY_URL --identity ${{ secrets.TRY_UAMI_RESOURCE_ID }}
-            az containerapp update --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP \
-              --image $REGISTRY_URL/try:${{ github.sha }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --image "${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }}"
 
   deploy-production:
     if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
@@ -204,9 +199,13 @@ jobs:
       name: "Production"
     permissions:
       id-token: write
-      contents: read
+      contents: write  # needed for git deploy tag
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Azure Login
         uses: azure/login@v3
         with:
@@ -214,36 +213,82 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Download artifact
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: tryimage
-          path: ${{ github.workspace }}
-
-      - name: Load image
+      # Server-side copy from dev ACR to prod ACR — no artifact download needed.
+      # PREREQUISITE: prod OIDC identity must have AcrPull on the dev ACR (Terraform RBAC).
+      - name: Import image from dev ACR to prod ACR
+        id: import
         run: |
-          docker load --input ${{ github.workspace }}/tryimage.tar
-          docker image ls -a
+          DEV_ACR="${{ vars.DEVCONTAINER_REGISTRY }}"
+          PROD_ACR="${{ vars.PRODCONTAINER_REGISTRY }}"
+          az acr import \
+            --name "${PROD_ACR%.azurecr.io}" \
+            --source "${DEV_ACR}/try:${{ github.sha }}" \
+            --registry "${DEV_ACR%.azurecr.io}" \
+            --image "try:${{ github.sha }}" \
+            --image "try:latest" \
+            --force
+          DIGEST=$(az acr repository show \
+            --name "${PROD_ACR%.azurecr.io}" \
+            --image "try:${{ github.sha }}" \
+            --query "digest" -o tsv)
+          if [ -z "$DIGEST" ]; then
+            echo "::error::Failed to capture image digest from prod ACR after import"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
-      - name: Log in to container registry
-        run: |
-          REGISTRY="${{ vars.PRODCONTAINER_REGISTRY }}"
-          az acr login --name "${REGISTRY%.azurecr.io}"
-
-      - name: Push Image to Container Registry
-        run: docker push --all-tags ${{ vars.PRODCONTAINER_REGISTRY }}/try
-
-      - name: Configure Container App Identity and Registry
-        uses: azure/CLI@v3
+      - name: Deploy to Container App
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
-          REGISTRY_URL: ${{ vars.PRODCONTAINER_REGISTRY }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --image "${{ vars.PRODCONTAINER_REGISTRY }}/try@${{ steps.import.outputs.digest }}"
+
+      - name: Verify deployed image
+        env:
+          CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+          RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
+        run: |
+          DEPLOYED=$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --query "properties.template.containers[0].image" -o tsv)
+          EXPECTED="${{ vars.PRODCONTAINER_REGISTRY }}/try@${{ steps.import.outputs.digest }}"
+          if [ "$DEPLOYED" != "$EXPECTED" ]; then
+            echo "::error::Image mismatch! Expected $EXPECTED but found $DEPLOYED"
+            exit 1
+          fi
+          echo "Deployed image verified: $DEPLOYED"
+
+      - name: Smoke test
+        env:
+          CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+          RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
+        run: |
+          FQDN=$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          # --retry-all-errors ensures HTTP 5xx (cold-start 503s) also trigger retries
+          curl --fail --retry 10 --retry-delay 15 --retry-all-errors --max-time 30 "https://$FQDN/"
+
+      - name: Tag commit as deployed
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          # -f allows re-tagging the same SHA on workflow re-runs
+          git tag -f "deployed/prod/${{ github.sha }}"
+          git push origin "deployed/prod/${{ github.sha }}" --force
+
+      - name: Logout of Azure CLI
+        if: always()
+        uses: azure/CLI@v3
         with:
           inlineScript: |
-            # Container app must already exist; use az containerapp up manually to bootstrap if needed
-            az extension add --name containerapp --upgrade
-            az containerapp identity assign --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP --user-assigned ${{ secrets.TRY_UAMI_RESOURCE_ID }}
-            az containerapp registry set --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP --server $REGISTRY_URL --identity ${{ secrets.TRY_UAMI_RESOURCE_ID }}
-            az containerapp update --name $CONTAINER_APP_NAME --resource-group $RESOURCEGROUP \
-              --image $REGISTRY_URL/try:${{ github.sha }}
+            az logout
+            az cache purge
+            az account clear
