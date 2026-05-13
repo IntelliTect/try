@@ -1,4 +1,9 @@
 version: 2
+multi-ecosystem-groups:
+  dotnet-sdk-updates:
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
 updates:
   # NuGet dependencies - using central package management
   - package-ecosystem: "nuget"
@@ -14,6 +19,9 @@ updates:
   # Docker base images
   - package-ecosystem: "docker"
     directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "dotnet-sdk-updates"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -80,10 +88,12 @@ updates:
 
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "dotnet-sdk-updates"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "dotnet-sdk"
