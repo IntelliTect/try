@@ -18,6 +18,8 @@ updates:
   # Docker base images
   - package-ecosystem: "docker"
     directory: "/"
+    patterns:
+      - "*"
     multi-ecosystem-group: "dotnet-sdk-updates"
     schedule:
       interval: "weekly"
@@ -85,6 +87,8 @@ updates:
 
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
+    patterns:
+      - "*"
     multi-ecosystem-group: "dotnet-sdk-updates"
     schedule:
       interval: "weekly"
