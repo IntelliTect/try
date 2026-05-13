@@ -223,7 +223,6 @@ jobs:
           az acr import \
             --name "${PROD_ACR%.azurecr.io}" \
             --source "${DEV_ACR}/try:${{ github.sha }}" \
-            --registry "${DEV_ACR%.azurecr.io}" \
             --image "try:${{ github.sha }}" \
             --image "try:latest" \
             --force
