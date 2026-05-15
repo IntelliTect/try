@@ -5,6 +5,8 @@ using System.Net.Mime;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Azure.Monitor.OpenTelemetry.Profiler;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.CSharpProject;
@@ -28,6 +30,13 @@ public class Program
     public static async Task Main(string[] args)
     {
         StartLogging();
+
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        {
+            Console.WriteLine(
+                "WARNING: APPLICATIONINSIGHTS_CONNECTION_STRING is not set. " +
+                "Application Insights telemetry and Profiler will be inactive.");
+        }
 
         await EnsurePrebuildIsReadyAsync();
 
@@ -63,6 +72,10 @@ public class Program
                                        .AllowAnyOrigin();
                                });
             });
+
+        builder.Services.AddOpenTelemetry()
+            .UseAzureMonitor()
+            .AddAzureMonitorProfiler();
 
         builder.Services.AddResponseCompression(compressionOptions =>
         {
