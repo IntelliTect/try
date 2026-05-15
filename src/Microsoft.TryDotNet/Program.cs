@@ -24,6 +24,8 @@ namespace Microsoft.TryDotNet;
 
 public class Program
 {
+    private const string AppInsightsConnectionStringEnvVar = "APPLICATIONINSIGHTS_CONNECTION_STRING";
+
     private static Prebuild? _consolePrebuild;
     private static bool _loggingEnabled;
 
@@ -31,10 +33,10 @@ public class Program
     {
         StartLogging();
 
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
         {
             Console.WriteLine(
-                "WARNING: APPLICATIONINSIGHTS_CONNECTION_STRING is not set. " +
+                $"WARNING: {AppInsightsConnectionStringEnvVar} is not set. " +
                 "Application Insights telemetry and Profiler will be inactive.");
         }
 
@@ -73,7 +75,7 @@ public class Program
                                });
             });
 
-        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
         {
             builder.Services.AddOpenTelemetry()
                 .UseAzureMonitor()
