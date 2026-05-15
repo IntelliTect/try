@@ -73,9 +73,12 @@ public class Program
                                });
             });
 
-        builder.Services.AddOpenTelemetry()
-            .UseAzureMonitor()
-            .AddAzureMonitorProfiler();
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
+        {
+            builder.Services.AddOpenTelemetry()
+                .UseAzureMonitor()
+                .AddAzureMonitorProfiler();
+        }
 
         builder.Services.AddResponseCompression(compressionOptions =>
         {
