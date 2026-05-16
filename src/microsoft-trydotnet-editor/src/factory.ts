@@ -60,6 +60,7 @@ export function createWasmProjectKernel(onServiceError: (serviceError: IServiceE
     const apiService = createApiService({
       commandsUrl: new URL(configuration.commandsUrl),
       referer: configuration.refererUrl ? new URL(configuration.refererUrl) : null,
+      correlationContext: configuration.correlationContext,
       onServiceError: onServiceError
     });
 
@@ -159,5 +160,6 @@ export interface IConfiguration {
   wasmRunnerUrl: string,
   refererUrl: string,
   commandsUrl: string,
+  correlationContext?: string,
   enableLogging: boolean
-} 
+}
