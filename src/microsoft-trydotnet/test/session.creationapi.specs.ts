@@ -19,6 +19,50 @@ describe("a user", () => {
         configuration = { hostOrigin: "https://learn.microsoft.com" };
     });
     describe("with single iframe", () => {
+        it("includes correlationContext in editor iframe url when configured", async () => {
+            configuration = {
+                hostOrigin: "https://learn.microsoft.com",
+                correlationContext: "0123456789abcdef0123456789abcdef"
+            };
+
+            const dom = buildSimpleIFrameDom(configuration);
+            const editorIFrame = getEditorIFrame(dom);
+            const project = {
+                package: "console",
+                files: [{ name: "program.cs", content: "" }]
+            };
+
+            const awaitableSession = createSessionWithProjectAndOpenDocument(
+                configuration,
+                [editorIFrame],
+                dom.window as unknown as Window,
+                project,
+                "program.cs");
+
+            const iframeUrl = new URL(editorIFrame.getAttribute("src")!);
+            iframeUrl.searchParams.get("correlationContext").should.equal("0123456789abcdef0123456789abcdef");
+
+            registerForOpenProject(configuration, editorIFrame, dom.window, (files) => {
+                return files.map(f => {
+                    const item: polyglotNotebooks.ProjectItem = {
+                        relativeFilePath: f.relativeFilePath,
+                        regionNames: [],
+                        regionsContent: {}
+                    };
+                    return item;
+                });
+            });
+
+            registerForOpeDocument(configuration, editorIFrame, dom.window, (documentId) => {
+                const content = project.files.find(f => areSameFile(f.name, documentId.relativeFilePath))?.content ?? "";
+                return content;
+            });
+
+            notifyEditorReady(configuration, dom.window);
+            const session = await awaitableSession;
+            session.should.not.be.null;
+        });
+
         it("can create a session with initial project", async () => {
             let dom = buildSimpleIFrameDom(configuration);
             let editorIFrame = getEditorIFrame(dom);
