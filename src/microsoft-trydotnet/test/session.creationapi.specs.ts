@@ -54,7 +54,6 @@ describe("a user", () => {
             });
 
             registerForOpeDocument(configuration, editorIFrame, dom.window, (documentId) => {
-                documentId;
                 const content = project.files.find(f => areSameFile(f.name, documentId.relativeFilePath))?.content ?? "";
                 return content;
             });
