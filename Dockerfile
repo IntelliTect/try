@@ -42,13 +42,9 @@ COPY . ./
 RUN --mount=type=cache,id=try-npm,target=/root/.npm \
     /App/build-js.sh
 
-# Build the solution
+# Publish only what we deploy
 RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
-    dotnet build -c Release --no-restore /App/src/Microsoft.TryDotNet
-
-# Publish (skips recompile since the build layer above is cached)
-RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
-    dotnet publish -c Release -o out --no-build /App/src/Microsoft.TryDotNet
+    dotnet publish -c Release --no-restore -o out /App/src/Microsoft.TryDotNet
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0
