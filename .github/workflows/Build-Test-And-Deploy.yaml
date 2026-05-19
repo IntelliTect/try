@@ -58,6 +58,7 @@ jobs:
           push: false
           tags: temp-pr-validation
           file: ./Dockerfile
+          cache-from: type=gha
 
       # Only build for dev registry — prod gets the image via az acr import in deploy-production
       - name: Build Container Image
