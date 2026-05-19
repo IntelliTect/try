@@ -44,7 +44,7 @@ RUN --mount=type=cache,id=try-npm,target=/root/.npm \
 
 # Build the solution
 RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
-    dotnet build -c Release --no-restore /App/TryDotNet.sln
+    dotnet build -c Release --no-restore /App/src/Microsoft.TryDotNet
 
 # Publish (skips recompile since the build layer above is cached)
 RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
