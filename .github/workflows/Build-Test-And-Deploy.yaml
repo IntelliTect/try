@@ -55,7 +55,7 @@ jobs:
         id: setup-buildx
 
       - name: Cache Docker build mounts
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v5
         id: cache-mounts
         with:
           path: .buildkit-cache
@@ -69,7 +69,7 @@ jobs:
           builder: ${{ steps.setup-buildx.outputs.name }}
           cache-dir: .buildkit-cache
           dockerfile: Dockerfile
-          skip-extraction: ${{ steps.cache-mounts.outputs.cache-hit }}
+          skip-extraction: ${{ github.event_name == 'pull_request' }}
 
         # Build but no push with a PR
       - name: Docker build (no push)
@@ -79,9 +79,9 @@ jobs:
           push: false
           tags: temp-pr-validation
           file: ./Dockerfile
-          cache-from: type=gha
+          cache-from: type=gha,scope=try-main
 
-      # Only build for dev registry — prod gets the image via az acr import in deploy-production
+        # Only build for dev registry — prod gets the image via az acr import in deploy-production
       - name: Build Container Image
         if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
         uses: docker/build-push-action@v7
@@ -90,8 +90,15 @@ jobs:
           file: ./Dockerfile
           context: .
           outputs: type=docker,dest=${{ github.workspace }}/tryimage.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=try-main
+          cache-to: type=gha,mode=max,scope=try-main
+
+      - name: Save Docker build mounts cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v5
+        with:
+          path: .buildkit-cache
+          key: buildkit-cache-${{ hashFiles('Dockerfile', 'Directory.Packages.props', 'NuGet.config', 'src/**/package-lock.json') }}
 
       - name: Upload artifact
         if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'

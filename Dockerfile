@@ -7,7 +7,7 @@ CMD ["bash"]
 
 # Install all required build tools in a single layer (rarely changes — stays cached)
 # This is Node v16. For 18, use nodejs18.
-RUN --mount=type=cache,target=/var/cache/tdnf,sharing=locked \
+RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
     tdnf install -y gawk nodejs npm
 
 # Copy only the files needed to restore dependencies.
@@ -32,18 +32,18 @@ COPY src/microsoft-learn-mock/package.json src/microsoft-learn-mock/package-lock
 
 # Restore NuGet packages. The cache mount persists the package cache across local
 # builds; in CI the layer itself is cached by the GHA cache backend.
-RUN --mount=type=cache,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
     dotnet restore --configfile /App/NuGet.config /App/TryDotNet.sln
 
 # Copy all remaining source (changes frequently — only layers below rebuild on edits)
 COPY . ./
 
 # Build javascript library. The npm cache mount speeds up repeated local builds.
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=try-npm,target=/root/.npm \
     /App/build-js.sh
 
 # Build and publish a release
-RUN --mount=type=cache,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
     dotnet publish -c Release -o out /App/src/Microsoft.TryDotNet
 
 # Build runtime image
@@ -55,7 +55,7 @@ WORKDIR /App
 CMD ["bash"]
 
 # Install runtime tools in a single layer
-RUN --mount=type=cache,target=/var/cache/tdnf,sharing=locked \
+RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
     tdnf install -y procps
 
 # Copy from build image
