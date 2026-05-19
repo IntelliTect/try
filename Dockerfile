@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build-env
 WORKDIR /App
 
@@ -6,7 +7,8 @@ CMD ["bash"]
 
 # Install all required build tools in a single layer (rarely changes — stays cached)
 # This is Node v16. For 18, use nodejs18.
-RUN tdnf install -y gawk nodejs npm && tdnf clean all
+RUN --mount=type=cache,target=/var/cache/tdnf,sharing=locked \
+    tdnf install -y gawk nodejs npm
 
 # Copy only the files needed to restore dependencies.
 # These layers are cached until a manifest file changes, so routine source edits
@@ -53,7 +55,8 @@ WORKDIR /App
 CMD ["bash"]
 
 # Install runtime tools in a single layer
-RUN tdnf install -y procps && tdnf clean all
+RUN --mount=type=cache,target=/var/cache/tdnf,sharing=locked \
+    tdnf install -y procps
 
 # Copy from build image
 COPY --from=build-env /App/out .
