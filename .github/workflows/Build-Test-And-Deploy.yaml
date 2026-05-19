@@ -49,6 +49,24 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        id: setup-buildx
+
+      - name: Cache Docker build mounts
+        uses: actions/cache@v4
+        id: cache-mounts
+        with:
+          path: .buildkit-cache
+          key: buildkit-cache-${{ hashFiles('Dockerfile', 'Directory.Packages.props', 'NuGet.config', 'src/**/package-lock.json') }}
+          restore-keys: |
+            buildkit-cache-
+
+      - name: Inject Docker cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: .buildkit-cache
+          dockerfile: Dockerfile
+          skip-extraction: ${{ steps.cache-mounts.outputs.cache-hit }}
 
         # Build but no push with a PR
       - name: Docker build (no push)

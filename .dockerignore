@@ -7,3 +7,5 @@ TestResults
 artifacts
 *.tar
 .copilot
+.buildkit-cache
+scratch
