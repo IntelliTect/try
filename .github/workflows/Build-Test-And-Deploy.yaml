@@ -82,8 +82,8 @@ jobs:
           cache-from: type=gha,scope=try-main
 
         # Only build for dev registry — prod gets the image via az acr import in deploy-production
-      - name: Build Container Image
-        if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
+      - name: Build Container Image (main cache write)
+        if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v7
         with:
           tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest
@@ -93,8 +93,18 @@ jobs:
           cache-from: type=gha,scope=try-main
           cache-to: type=gha,mode=max,scope=try-main
 
+      - name: Build Container Image (no cache write)
+        if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request' && github.ref != 'refs/heads/main'
+        uses: docker/build-push-action@v7
+        with:
+          tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest
+          file: ./Dockerfile
+          context: .
+          outputs: type=docker,dest=${{ github.workspace }}/tryimage.tar
+          cache-from: type=gha,scope=try-main
+
       - name: Save Docker build mounts cache
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v5
         with:
           path: .buildkit-cache
