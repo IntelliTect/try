@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Assent" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.Playwright" />
@@ -71,6 +75,5 @@ public static class BuildProperties
   <Target Name="PublishTool" BeforeTargets="CoreCompile" Condition="'$(DisableArcade)' != '1'">
     <Exec Command="dotnet publish -o $(PublishLocation)" WorkingDirectory="$(MSBuildThisFileDirectory)..\Microsoft.TryDotNet" />
   </Target>
-
 </Project>
   
