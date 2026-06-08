@@ -7,7 +7,7 @@
     <!-- Azure Monitor OpenTelemetry distro (stable) -->
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.5.0" />
     <!-- Azure Monitor OTel Profiler (Preview/prerelease — pin exact version; review on every bump) -->
-    <PackageVersion Include="Azure.Monitor.OpenTelemetry.Profiler" Version="1.0.1-beta.2" />
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.Profiler" Version="1.0.1-beta.3" />
     <PackageVersion Include="Assent" Version="3.0.1" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
