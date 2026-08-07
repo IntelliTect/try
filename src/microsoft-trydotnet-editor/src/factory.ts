@@ -161,5 +161,6 @@ export interface IConfiguration {
   refererUrl: string,
   commandsUrl: string,
   correlationContext?: string,
+  applicationInsightsConnectionString?: string,
   enableLogging: boolean
 }
