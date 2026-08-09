@@ -12,7 +12,6 @@ import * as polyglotNotebooks from '@microsoft/polyglot-notebooks';
 import { configureLogging } from './log';
 
 if (window) {
-
 	const settings: TryDotNetEditorSettings = {
 		editorId: "-0-"
 	};
