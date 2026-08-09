@@ -28,13 +28,11 @@ export interface IWorkspaceBuffer {
   position: number;
 }
 export function encodeWorkspace(workspace: IWorkspace): string {
-  let buffer = Buffer.from(JSON.stringify(workspace));
-  return encodeURIComponent(buffer.toString("base64"));
+  return encodeURIComponent(btoa(JSON.stringify(workspace)));
 }
 
 export function decodeWorkspace(encodedWorkspace: string): IWorkspace {
-  let data = Buffer.from(decodeURIComponent(encodedWorkspace), "base64");
-  return JSON.parse(data.toString()) as IWorkspace;
+  return JSON.parse(atob(decodeURIComponent(encodedWorkspace))) as IWorkspace;
 }
 
 export function getBufferContent(workspace: IWorkspace, bufferId: string): string {

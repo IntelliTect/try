@@ -6,8 +6,10 @@
     ],
     "declaration": true,
     "noImplicitAny": true,
+    "strictNullChecks": false,
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
     "outDir": "./dist",
     "target": "es6"
   },

@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"sourceMap": true,
 		"module": "commonjs",
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"target": "ES6",
 		"outDir": "./lib",
 		"lib": [
@@ -10,9 +10,9 @@
 			"es2021"
 		],
 		"types": [],
-		"skipLibCheck": false,
-		"baseUrl": "./node_modules",
-		"jsx": "preserve",
+		"noImplicitAny": false,
+		"strictNullChecks": false,
+		"skipLibCheck": true,
 		"typeRoots": [
 			"node_modules/@types"
 		]

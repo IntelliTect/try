@@ -50,7 +50,7 @@ export class MonacoTextEditor implements ITrydotnetMonacoTextEditor {
             }
         }).bind(this);
         this.editorApimessageBus.subscribe({
-            next: (event) => codeChangedHandler(event)
+            next: (event) => codeChangedHandler(event as ApiMessage)
         });
     }
 

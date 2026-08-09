@@ -157,7 +157,7 @@ export class Session implements ISession {
                 }
             }).bind(this);
 
-            this.messageBus.subscribe({ next: message => listenerHandler(message) });
+            this.messageBus.subscribe({ next: message => listenerHandler(message as ApiMessage) });
 
         });
     }

@@ -69,7 +69,7 @@ export function createWasmProjectKernel(onServiceError: (serviceError: IServiceE
   } catch (e) {
     onServiceError({
       statusCode: "500",
-      message: e.message
+      message: e instanceof Error ? e.message : String(e)
     });
   }
 }
