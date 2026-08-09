@@ -1,8 +1,7 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import typescript from 'rollup-plugin-typescript2'
-import ts from 'typescript';
+import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import { readFileSync } from 'fs';
@@ -31,11 +30,8 @@ export default {
     ],
     plugins: [
         typescript({
-            typescript: ts,
-            tsconfigOverride: {
-                compilerOptions: {
-                    "module": "ES2015"
-                }
+            compilerOptions: {
+                "module": "ES2015"
             },
         }),
         resolve({
