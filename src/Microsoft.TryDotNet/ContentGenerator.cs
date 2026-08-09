@@ -36,15 +36,12 @@ public class ContentGenerator
             correlationContext = correlationContextQueryValue.FirstOrDefault();
         }
 
-        string? applicationInsightsConnectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING");
-
         var configuration = new
         {
             wasmRunnerUrl = wasmRunnerUri.AbsoluteUri,
             commandsUrl = commandsUri.AbsoluteUri,
             refererUrl = !string.IsNullOrWhiteSpace(referer) ? new Uri(referer, UriKind.Absolute) : null,
             correlationContext,
-            applicationInsightsConnectionString,
             enableLogging
         };
 
