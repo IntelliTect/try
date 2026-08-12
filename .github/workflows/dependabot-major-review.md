@@ -5,7 +5,9 @@ description: "Reviews major-version Dependabot PRs daily and approves safe ones 
 on:
   schedule: weekly on tuesday
 
-engine: copilot
+engine:
+  id: copilot
+  version: 1.0.56
 
 permissions:
   contents: read
