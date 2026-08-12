@@ -8,7 +8,7 @@ CMD ["bash"]
 # Install all required build tools in a single layer (rarely changes — stays cached)
 # Use nodejs24 for Node 24.x (required for ESM-compatible dependencies).
 RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
-    tdnf install -y gawk nodejs24
+    tdnf install -y gawk nodejs24 nodejs24-npm
 
 # Copy only the files needed to restore dependencies.
 # These layers are cached until a manifest file changes, so routine source edits
