@@ -17,13 +17,17 @@ export function generateEditorUrl(configuration: Configuration, packageName?: st
         url.searchParams.append("enableLogging", "true");
     }
 
-    buildQueryString(url, packageName);
+    buildQueryString(url, packageName, configuration.correlationContext);
     return url.href;
 }
 
-function buildQueryString(url: URL, packageName?: string) {
+function buildQueryString(url: URL, packageName?: string, correlationContext?: string) {
     if (packageName) {
         url.searchParams.append("workspaceType", packageName);
+    }
+
+    if (correlationContext) {
+        url.searchParams.append("correlationContext", correlationContext);
     }
 }
 

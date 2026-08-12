@@ -15,9 +15,12 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     environment: "BuildAndUploadImage"
+    permissions:
+      actions: write  # required for docker/build-push-action GHA cache writes
+      contents: read
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js environment
         uses: ./.github/actions/setup-node
@@ -41,38 +44,69 @@ jobs:
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
-        uses: BenjaminMichaelis/trx-to-vsplaylist@v3
+        uses: BenjaminMichaelis/trx-to-vsplaylist@v4
         with:
           trx-file-path: "./TestResults/*.trx"
           test-outcomes: "Failed"
           artifact-name: "linux-test-playlists"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
+        id: setup-buildx
+
+      - name: Cache Docker build mounts (main)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache@v6
+        id: cache-mounts-main
+        with:
+          path: .buildkit-cache
+          key: buildkit-cache-${{ hashFiles('Dockerfile', 'Directory.Packages.props', 'NuGet.config', 'src/**/package-lock.json') }}
+          restore-keys: |
+            buildkit-cache-
+
+      - name: Restore Docker build mounts (PR)
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        uses: actions/cache/restore@v6
+        id: cache-mounts-pr
+        with:
+          path: .buildkit-cache
+          key: buildkit-cache-${{ hashFiles('Dockerfile', 'Directory.Packages.props', 'NuGet.config', 'src/**/package-lock.json') }}
+          restore-keys: |
+            buildkit-cache-
+
+      - name: Inject Docker cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: .buildkit-cache
+          dockerfile: Dockerfile
+          skip-extraction: ${{ github.ref != 'refs/heads/main' || steps.cache-mounts-main.outputs.cache-hit == 'true' }}
 
         # Build but no push with a PR
       - name: Docker build (no push)
         if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: false
           tags: temp-pr-validation
           file: ./Dockerfile
+          cache-from: type=gha,scope=try-main
 
+        # Only build for dev registry — prod gets the image via az acr import in deploy-production
       - name: Build Container Image
-        if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v7
         with:
-          tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest,${{ vars.PRODCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.PRODCONTAINER_REGISTRY }}/try:latest
+          tags: ${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }},${{ vars.DEVCONTAINER_REGISTRY }}/try:latest
           file: ./Dockerfile
           context: .
           outputs: type=docker,dest=${{ github.workspace }}/tryimage.tar
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=try-main
+          cache-to: type=gha,mode=max,scope=try-main
 
       - name: Upload artifact
-        if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v6
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: tryimage
           path: ${{ github.workspace }}/tryimage.tar
@@ -83,7 +117,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js environment
         uses: ./.github/actions/setup-node
@@ -99,7 +133,7 @@ jobs:
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
-        uses: BenjaminMichaelis/trx-to-vsplaylist@v3
+        uses: BenjaminMichaelis/trx-to-vsplaylist@v4
         with:
           trx-file-path: "./TestResults/*.trx"
           test-outcomes: "Failed"
@@ -121,7 +155,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js environment
         uses: ./.github/actions/setup-node
@@ -142,16 +176,19 @@ jobs:
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-integration-tests.outcome == 'failure' || failure() }}
-        uses: BenjaminMichaelis/trx-to-vsplaylist@v3
+        uses: BenjaminMichaelis/trx-to-vsplaylist@v4
         with:
           trx-file-path: "./TestResults/*.trx"
           test-outcomes: "Failed"
           artifact-name: "integration-test-playlists"
 
   deploy-development:
-    if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [build-and-test, build-and-test-windows, integration-tests]
+    concurrency:
+      group: deploy-development-try
+      cancel-in-progress: false
     environment:
       name: "Development"
     permissions:
@@ -160,14 +197,14 @@ jobs:
 
     steps:
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
-          client-id: ${{ secrets.ESSENTIALCSHARPDEV_CLIENT_ID }}
-          tenant-id: ${{ secrets.ESSENTIALCSHARP_TENANT_ID }}
-          subscription-id: ${{ secrets.ESSENTIALCSHARP_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Download artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8.0.1
         with:
           name: tryimage
           path: ${{ github.workspace }}
@@ -178,80 +215,124 @@ jobs:
           docker image ls -a
 
       - name: Log in to container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.DEVCONTAINER_REGISTRY }}
-          username: ${{ secrets.ESSENTIALCSHARP_ACR_USERNAME }}
-          password: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
+        run: |
+          REGISTRY="${{ vars.DEVCONTAINER_REGISTRY }}"
+          az acr login --name "${REGISTRY%.azurecr.io}"
 
-      - name: Push Image to Container Registry
-        env:
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
-        run: docker push --all-tags $REGISTRY_URL/try
+      - name: Push Image to Dev Container Registry
+        run: docker push --all-tags ${{ vars.DEVCONTAINER_REGISTRY }}/try
 
-      - name: Create and Deploy to Container App
-        uses: azure/CLI@v2
+      - name: Deploy to Container App
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
-          CONTAINER_APP_ENVIRONMENT: ${{ vars.CONTAINER_APP_ENVIRONMENT }}
-          REGISTRY_URL: ${{ vars.DEVCONTAINER_REGISTRY }}
-          ACR_USERNAME: ${{ secrets.ESSENTIALCSHARP_ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
-        with:
-          inlineScript: |
-            az config set extension.use_dynamic_install=yes_without_prompt
-            az containerapp up -n $CONTAINER_APP_NAME -g $RESOURCEGROUP --image $REGISTRY_URL/try:${{ github.sha }} --environment $CONTAINER_APP_ENVIRONMENT --registry-server $REGISTRY_URL --ingress external --registry-username $ACR_USERNAME --registry-password $ACR_PASSWORD --target-port 80 --debug
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --image "${{ vars.DEVCONTAINER_REGISTRY }}/try:${{ github.sha }}"
 
   deploy-production:
-    if: github.event_name != 'pull_request_target' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: deploy-development
+    concurrency:
+      group: deploy-production-try
+      cancel-in-progress: false
     environment:
       name: "Production"
     permissions:
       id-token: write
-      contents: read
+      contents: write  # needed for git deploy tag
 
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
-          client-id: ${{ secrets.ESSENTIALCSHARP_CLIENT_ID }}
-          tenant-id: ${{ secrets.ESSENTIALCSHARP_TENANT_ID }}
-          subscription-id: ${{ secrets.ESSENTIALCSHARP_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Download artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: tryimage
-          path: ${{ github.workspace }}
-
-      - name: Load image
+      # Server-side copy from dev ACR to prod ACR — no artifact download needed.
+      # PREREQUISITE: prod OIDC identity must have AcrPull on the dev ACR (Terraform RBAC).
+      - name: Import image from dev ACR to prod ACR
+        id: import
         run: |
-          docker load --input ${{ github.workspace }}/tryimage.tar
-          docker image ls -a
+          DEV_ACR="${{ vars.DEVCONTAINER_REGISTRY }}"
+          PROD_ACR="${{ vars.PRODCONTAINER_REGISTRY }}"
+          az acr import \
+            --name "${PROD_ACR%.azurecr.io}" \
+            --source "${DEV_ACR}/try:${{ github.sha }}" \
+            --image "try:${{ github.sha }}" \
+            --image "try:latest" \
+            --force
+          DIGEST=$(az acr repository show \
+            --name "${PROD_ACR%.azurecr.io}" \
+            --image "try:${{ github.sha }}" \
+            --query "digest" -o tsv)
+          if [ -z "$DIGEST" ]; then
+            echo "::error::Failed to capture image digest from prod ACR after import"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
-      - name: Log in to container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.PRODCONTAINER_REGISTRY }}
-          username: ${{ secrets.ESSENTIALCSHARP_CLIENT_ID }}
-          password: ${{ secrets.ESSENTIALCSHARP_CLIENT_SECRET }}
-
-      - name: Push Image to Container Registry
-        run: docker push --all-tags ${{ vars.PRODCONTAINER_REGISTRY }}/try
-
-      - name: Create and Deploy to Container App
-        uses: azure/CLI@v2
+      - name: Deploy to Container App
         env:
           CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
           RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
-          CONTAINER_APP_ENVIRONMENT: ${{ vars.CONTAINER_APP_ENVIRONMENT }}
-          REGISTRY_URL: ${{ vars.PRODCONTAINER_REGISTRY }}
-          ACR_USERNAME: ${{ secrets.ESSENTIALCSHARP_ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ESSENTIALCSHARP_ACR_PASSWORD }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --image "${{ vars.PRODCONTAINER_REGISTRY }}/try@${{ steps.import.outputs.digest }}"
+
+      - name: Verify deployed image
+        env:
+          CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+          RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
+        run: |
+          DEPLOYED=$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --query "properties.template.containers[0].image" -o tsv)
+          EXPECTED="${{ vars.PRODCONTAINER_REGISTRY }}/try@${{ steps.import.outputs.digest }}"
+          if [ "$DEPLOYED" != "$EXPECTED" ]; then
+            echo "::error::Image mismatch! Expected $EXPECTED but found $DEPLOYED"
+            exit 1
+          fi
+          echo "Deployed image verified: $DEPLOYED"
+
+      - name: Smoke test
+        env:
+          CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+          RESOURCEGROUP: ${{ vars.RESOURCEGROUP }}
+        run: |
+          FQDN=$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCEGROUP" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          # --retry-all-errors ensures HTTP 5xx (cold-start 503s) also trigger retries
+          curl --fail --retry 10 --retry-delay 15 --retry-all-errors --max-time 30 "https://$FQDN/"
+
+      - name: Tag commit as deployed
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          # -f allows re-tagging the same SHA on workflow re-runs
+          git tag -f "deployed/prod/${{ github.sha }}"
+          git push origin "deployed/prod/${{ github.sha }}" --force
+
+      - name: Logout of Azure CLI
+        if: always()
+        uses: azure/CLI@v3
         with:
           inlineScript: |
-            az config set extension.use_dynamic_install=yes_without_prompt
-            az containerapp up -n $CONTAINER_APP_NAME -g $RESOURCEGROUP --image $REGISTRY_URL/try:${{ github.sha }} --environment $CONTAINER_APP_ENVIRONMENT --registry-server $REGISTRY_URL --ingress external --target-port 80 --debug
+            az logout
+            az cache purge
+            az account clear

@@ -6,6 +6,7 @@ import { MonacoEditorConfiguration } from "./editor";
 export type Configuration = {
     hostOrigin?: string,
     trydotnetOrigin?: string,
+    correlationContext?: string,
     editorConfiguration?: MonacoEditorConfiguration,
     enableLogging?: boolean,
 }

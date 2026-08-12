@@ -30,11 +30,18 @@ public class ContentGenerator
             enableLogging = enableLoggingString.FirstOrDefault()?.ToLowerInvariant() == "true";
         }
 
+        string? correlationContext = null;
+        if (request.Query.TryGetValue("correlationContext", out var correlationContextQueryValue))
+        {
+            correlationContext = correlationContextQueryValue.FirstOrDefault();
+        }
+
         var configuration = new
         {
             wasmRunnerUrl = wasmRunnerUri.AbsoluteUri,
             commandsUrl = commandsUri.AbsoluteUri,
             refererUrl = !string.IsNullOrWhiteSpace(referer) ? new Uri(referer, UriKind.Absolute) : null,
+            correlationContext,
             enableLogging
         };
 

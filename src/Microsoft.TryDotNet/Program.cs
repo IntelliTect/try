@@ -5,6 +5,8 @@ using System.Net.Mime;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Azure.Monitor.OpenTelemetry.Profiler;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.CSharpProject;
@@ -22,12 +24,21 @@ namespace Microsoft.TryDotNet;
 
 public class Program
 {
+    private const string AppInsightsConnectionStringEnvVar = "APPLICATIONINSIGHTS_CONNECTION_STRING";
+
     private static Prebuild? _consolePrebuild;
     private static bool _loggingEnabled;
 
     public static async Task Main(string[] args)
     {
         StartLogging();
+
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
+        {
+            Console.WriteLine(
+                $"WARNING: {AppInsightsConnectionStringEnvVar} is not set. " +
+                "Application Insights telemetry and Profiler will be inactive.");
+        }
 
         await EnsurePrebuildIsReadyAsync();
 
@@ -63,6 +74,13 @@ public class Program
                                        .AllowAnyOrigin();
                                });
             });
+
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
+        {
+            builder.Services.AddOpenTelemetry()
+                .UseAzureMonitor()
+                .AddAzureMonitorProfiler();
+        }
 
         builder.Services.AddResponseCompression(compressionOptions =>
         {

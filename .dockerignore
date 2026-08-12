@@ -1,0 +1,11 @@
+.git
+**/node_modules
+**/obj
+**/bin
+**/dist
+TestResults
+artifacts
+*.tar
+.copilot
+.buildkit-cache
+scratch

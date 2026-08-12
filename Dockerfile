@@ -1,27 +1,53 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build-env
+# syntax=docker/dockerfile:1
+FROM node:24-bookworm-slim AS node-build
 WORKDIR /App
 
-# Copy everything
+# Build javascript library. The npm cache mount speeds up repeated local builds.
 COPY . ./
+RUN --mount=type=cache,id=try-npm,target=/root/.npm \
+    /App/build-js.sh
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build-env
+WORKDIR /App
 
 # Make sure we run bash
 CMD ["bash"]
 
-# Make sure we get all the updates and tools we need to build
-RUN tdnf install gawk -y
-# This is Node v16.  For 18, use nodejs18.
-RUN tdnf install nodejs -y
-RUN tdnf install npm -y
-RUN tdnf clean all
+# Copy only the files needed to restore dependencies.
+# These layers are cached until a manifest file changes, so routine source edits
+# don't re-run the expensive restore steps below.
+COPY NuGet.config global.json Directory.Build.props Directory.Build.targets Directory.Packages.props TryDotNet.sln ./
+COPY eng/ ./eng/
 
-# Build javascript library
-RUN /App/build-js.sh
+# .csproj files — one COPY per project to preserve directory structure
+COPY src/Microsoft.TryDotNet/Microsoft.TryDotNet.csproj src/Microsoft.TryDotNet/
+COPY src/Microsoft.TryDotNet.FileIntegration.Tests/Microsoft.TryDotNet.FileIntegration.Tests.csproj src/Microsoft.TryDotNet.FileIntegration.Tests/
+COPY src/Microsoft.TryDotNet.IntegrationTests/Microsoft.TryDotNet.IntegrationTests.csproj src/Microsoft.TryDotNet.IntegrationTests/
+COPY src/Microsoft.TryDotNet.SimulatorGenerator/Microsoft.TryDotNet.SimulatorGenerator.csproj src/Microsoft.TryDotNet.SimulatorGenerator/
+COPY src/Microsoft.TryDotNet.Tests/Microsoft.TryDotNet.Tests.csproj src/Microsoft.TryDotNet.Tests/
+COPY src/Microsoft.TryDotNet.WasmRunner/Microsoft.TryDotNet.WasmRunner.csproj src/Microsoft.TryDotNet.WasmRunner/
 
-# Restore
-RUN dotnet restore --configfile /App/NuGet.config /App/TryDotNet.sln
+# npm manifests
+COPY src/microsoft-trydotnet/package.json src/microsoft-trydotnet/package-lock.json src/microsoft-trydotnet/
+COPY src/microsoft-trydotnet-editor/package.json src/microsoft-trydotnet-editor/package-lock.json src/microsoft-trydotnet-editor/
+COPY src/microsoft-trydotnet-styles/package.json src/microsoft-trydotnet-styles/package-lock.json src/microsoft-trydotnet-styles/
+COPY src/microsoft-learn-mock/package.json src/microsoft-learn-mock/package-lock.json src/microsoft-learn-mock/
 
-# Build and publish a release
-RUN dotnet publish -c Release -o out /App/src/Microsoft.TryDotNet
+# Restore NuGet packages. The cache mount persists the package cache across local
+# builds; in CI the layer itself is cached by the GHA cache backend.
+RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
+    dotnet restore --configfile /App/NuGet.config /App/TryDotNet.sln
+
+# Copy all remaining source (changes frequently — only layers below rebuild on edits)
+COPY . ./
+
+# Bring built JS/CSS artifacts from the Node build stage.
+COPY --from=node-build /App/src/Microsoft.TryDotNet/wwwroot/api /App/src/Microsoft.TryDotNet/wwwroot/api
+COPY --from=node-build /App/src/Microsoft.TryDotNet/wwwroot/css /App/src/Microsoft.TryDotNet/wwwroot/css
+
+# Publish only what we deploy
+RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
+    dotnet publish -c Release --no-restore -o out /App/src/Microsoft.TryDotNet
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0
@@ -31,9 +57,9 @@ WORKDIR /App
 # Make sure we run bash
 CMD ["bash"]
 
-# Make sure we get all the tools we need
-RUN tdnf install procps -y
-RUN tdnf clean all
+# Install runtime tools in a single layer
+RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
+    tdnf install -y procps
 
 # Copy from build image
 COPY --from=build-env /App/out .
