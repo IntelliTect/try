@@ -96,7 +96,8 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         var editor = page.Locator(@"textarea[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
-        await editor.PressAsync("Control+a");
+        // Use ControlOrMeta+a so the shortcut works on both macOS (Cmd+A) and other platforms (Ctrl+A).
+        await editor.PressAsync("ControlOrMeta+a");
         await editor.PressAsync("Delete");
     }
 
