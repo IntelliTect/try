@@ -68,7 +68,9 @@ public static class BuildProperties
       <Compile Include="$(IntermediateOutputPath)\$(GeneratedFileName)" />
     </ItemGroup>
   </Target>
-  <Target Name="PublishTool" BeforeTargets="CoreCompile">
+  <Target Name="PublishTool" BeforeTargets="CoreCompile"
+          Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' != 'false'"
+          Outputs="$(PublishLocation)\Microsoft.TryDotNet.dll">
     <Exec Command="dotnet publish -o $(PublishLocation)" WorkingDirectory="$(MSBuildThisFileDirectory)..\Microsoft.TryDotNet" />
   </Target>
 
