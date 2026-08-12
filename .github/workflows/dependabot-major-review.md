@@ -12,6 +12,7 @@ permissions:
   pull-requests: read
   actions: read
   security-events: read
+  vulnerability-alerts: read
   issues: read
   discussions: read
 
