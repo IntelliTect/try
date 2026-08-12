@@ -37,7 +37,7 @@
     </PackageReference>
   </ItemGroup>
   
-  <ItemGroup Condition="'$(DisableArcade)' == '1'">
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 
@@ -68,7 +68,7 @@ public static class BuildProperties
       <Compile Include="$(IntermediateOutputPath)\$(GeneratedFileName)" />
     </ItemGroup>
   </Target>
-  <Target Name="PublishTool" BeforeTargets="CoreCompile" Condition="'$(DisableArcade)' != '1'">
+  <Target Name="PublishTool" BeforeTargets="CoreCompile">
     <Exec Command="dotnet publish -o $(PublishLocation)" WorkingDirectory="$(MSBuildThisFileDirectory)..\Microsoft.TryDotNet" />
   </Target>
 
