@@ -36,6 +36,18 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
 }", data);
     }
 
+    /// <summary>
+    /// Waits until the Monaco editor is visible in the page.
+    /// Uses LoadState.Load + element visibility instead of NetworkIdle, because
+    /// Blazor WASM apps maintain persistent connections (SignalR / hot-reload) that
+    /// prevent NetworkIdle from ever settling—especially on Firefox.
+    /// </summary>
+    public static async Task WaitForEditorReadyAsync(this IPage page)
+    {
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.Locator("div[role=\"code\"]").WaitForAsync();
+    }
+
     public static async Task<ILocator> FindEditor(this IPage page)
     {
         var editor = page.Locator(@"textarea[role = ""textbox""]");

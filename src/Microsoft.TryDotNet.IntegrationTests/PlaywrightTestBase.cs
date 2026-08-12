@@ -33,8 +33,10 @@ public abstract class PlaywrightTestBase : IDisposable
     {
         var playwright = await Services.GetPlaywrightAsync();
         var page = await playwright.Browser.NewPageAsync();
-        // Firefox needs more time to reach NetworkIdle due to Blazor WASM loading.
+        // Firefox/WASM apps keep persistent connections (SignalR, hot-reload) that prevent
+        // NetworkIdle from ever firing. Use generous timeouts for both navigation and locator waits.
         page.SetDefaultNavigationTimeout(90_000f);
+        page.SetDefaultTimeout(90_000f);
         return page;
     }
 
