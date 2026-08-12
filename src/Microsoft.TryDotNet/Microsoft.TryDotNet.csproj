@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <Folder Include="wwwroot\api\editor\" />
   </ItemGroup>
 
