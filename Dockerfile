@@ -1,14 +1,17 @@
 # syntax=docker/dockerfile:1
+FROM node:20-bookworm-slim AS node-build
+WORKDIR /App
+
+# Build javascript library. The npm cache mount speeds up repeated local builds.
+COPY . ./
+RUN --mount=type=cache,id=try-npm,target=/root/.npm \
+    /App/build-js.sh
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build-env
 WORKDIR /App
 
 # Make sure we run bash
 CMD ["bash"]
-
-# Install all required build tools in a single layer (rarely changes — stays cached)
-# This is Node v16. For 18, use nodejs18.
-RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
-    tdnf install -y gawk nodejs npm
 
 # Copy only the files needed to restore dependencies.
 # These layers are cached until a manifest file changes, so routine source edits
@@ -38,9 +41,9 @@ RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
 # Copy all remaining source (changes frequently — only layers below rebuild on edits)
 COPY . ./
 
-# Build javascript library. The npm cache mount speeds up repeated local builds.
-RUN --mount=type=cache,id=try-npm,target=/root/.npm \
-    /App/build-js.sh
+# Bring built JS/CSS artifacts from the Node build stage.
+COPY --from=node-build /App/src/Microsoft.TryDotNet/wwwroot/api /App/src/Microsoft.TryDotNet/wwwroot/api
+COPY --from=node-build /App/src/Microsoft.TryDotNet/wwwroot/css /App/src/Microsoft.TryDotNet/wwwroot/css
 
 # Publish only what we deploy
 RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
