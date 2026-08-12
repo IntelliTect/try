@@ -156,7 +156,7 @@ jobs:
 
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
-        run: dotnet test --no-build --configuration Release --max-parallel-test-assemblies 1 --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           RunIntegrationTests: true
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
