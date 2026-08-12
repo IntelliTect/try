@@ -6,9 +6,9 @@ WORKDIR /App
 CMD ["bash"]
 
 # Install all required build tools in a single layer (rarely changes — stays cached)
-# This is Node v16. For 18, use nodejs18.
+# Use nodejs22 for Node 22.x (required for ESM-compatible dependencies).
 RUN --mount=type=cache,id=try-tdnf,target=/var/cache/tdnf,sharing=locked \
-    tdnf install -y gawk nodejs npm
+    tdnf install -y gawk nodejs22 npm
 
 # Copy only the files needed to restore dependencies.
 # These layers are cached until a manifest file changes, so routine source edits
