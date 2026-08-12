@@ -4,7 +4,6 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Microsoft</Authors>
     <PackageTags>dotnet try</PackageTags>
-    <NuspecBasePath>$(ArtifactsBinDir)</NuspecBasePath>
-    <Copyright>$(CopyrightMicrosoft)</Copyright>
+    <Copyright>Copyright (c) Microsoft. All rights reserved.</Copyright>
   </PropertyGroup>
 </Project>

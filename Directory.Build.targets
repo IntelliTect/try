@@ -1,7 +1,5 @@
 <Project>
 
-  <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" Condition="'$(DisableArcade)' != '1'" />
-
   <!-- Consolidate FSharp package versions -->
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="7.0.200" />
