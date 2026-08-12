@@ -488,6 +488,12 @@ jobs:
         run: bash "${RUNNER_TEMP}/gh-aw/actions/install_copilot_cli.sh" 1.0.56
         env:
           GH_HOST: github.com
+      - name: Symlink Copilot CLI to expected path
+        run: |
+          COPILOT_BIN="$(command -v copilot 2>/dev/null || true)"
+          if [ -n "$COPILOT_BIN" ] && [ ! -f /usr/local/bin/copilot ]; then
+            sudo ln -sf "$COPILOT_BIN" /usr/local/bin/copilot
+          fi
       - name: Install AWF binary
         run: bash "${RUNNER_TEMP}/gh-aw/actions/install_awf_binary.sh" v0.27.44 --rootless
       - name: Determine automatic lockdown mode for GitHub MCP Server
@@ -1402,6 +1408,12 @@ jobs:
         run: bash "${RUNNER_TEMP}/gh-aw/actions/install_copilot_cli.sh" 1.0.56
         env:
           GH_HOST: github.com
+      - name: Symlink Copilot CLI to expected path
+        run: |
+          COPILOT_BIN="$(command -v copilot 2>/dev/null || true)"
+          if [ -n "$COPILOT_BIN" ] && [ ! -f /usr/local/bin/copilot ]; then
+            sudo ln -sf "$COPILOT_BIN" /usr/local/bin/copilot
+          fi
       - name: Install AWF binary
         run: bash "${RUNNER_TEMP}/gh-aw/actions/install_awf_binary.sh" v0.27.44
       - name: Execute GitHub Copilot CLI
