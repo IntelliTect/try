@@ -17,6 +17,7 @@ permissions:
   vulnerability-alerts: read
   issues: read
   discussions: read
+  copilot-requests: write
 
 tools:
   github:
