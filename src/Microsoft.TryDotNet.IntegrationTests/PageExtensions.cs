@@ -38,7 +38,7 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
 
     public static async Task<ILocator> FindEditor(this IPage page)
     {
-        var editor = page.Locator(@"textarea[role = ""textbox""]");
+        var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         return editor;
     }
@@ -93,7 +93,7 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
 
     public static async Task ClearMonacoEditor(this IPage page)
     {
-        var editor = page.Locator(@"textarea[role = ""textbox""]");
+        var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
         await editor.PressAsync("Control+a");
