@@ -91,6 +91,22 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         return text;
     }
 
+    /// <summary>
+    /// Waits for the Monaco editor page to be fully interactive.
+    /// Uses <see cref="LoadState.Load"/> (reliable on all browsers) followed by an explicit
+    /// wait for the Monaco editor container, avoiding the <see cref="LoadState.NetworkIdle"/>
+    /// state that Firefox never reaches when Blazor WASM keeps background connections open.
+    /// </summary>
+    public static async Task WaitForEditorLoadedAsync(this IPage page)
+    {
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        await page.Locator(@"div[role=""code""]").WaitForAsync(new LocatorWaitForOptions
+        {
+            State = WaitForSelectorState.Visible,
+            Timeout = 90_000f
+        });
+    }
+
     public static async Task ClearMonacoEditor(this IPage page)
     {
         var editor = page.Locator(@"textarea[role = ""textbox""]");
