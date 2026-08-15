@@ -25,9 +25,14 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.SubmitCodeType,
       handle: (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-
-        this.throwIfProjectIsNotOpened();
-        this.throwIffDocumentIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return Promise.resolve();
+        }
+        if (!this._openDocument) {
+          commandInvocation.context.fail(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
+          return Promise.resolve();
+        }
         return this.handleSubmitCode(commandInvocation);
       }
     });
@@ -44,7 +49,10 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.OpenDocumentType,
       handle: async (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-        this.throwIfProjectIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return;
+        }
         await this.handleOpenDocument(commandInvocation);
         let command = <polyglotNotebooks.OpenDocument>commandInvocation.commandEnvelope.command;
         this._openDocument = {
@@ -60,8 +68,14 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.RequestDiagnosticsType,
       handle: (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-        this.throwIfProjectIsNotOpened();
-        this.throwIffDocumentIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return Promise.resolve();
+        }
+        if (!this._openDocument) {
+          commandInvocation.context.fail(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
+          return Promise.resolve();
+        }
         return this.handleRequestDiagnostics(commandInvocation);
       }
     });
@@ -69,8 +83,14 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.RequestCompletionsType,
       handle: (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-        this.throwIfProjectIsNotOpened();
-        this.throwIffDocumentIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return Promise.resolve();
+        }
+        if (!this._openDocument) {
+          commandInvocation.context.fail(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
+          return Promise.resolve();
+        }
         return this.handleRequestCompletions(commandInvocation);
       }
     });
@@ -78,8 +98,14 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.RequestHoverTextType,
       handle: (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-        this.throwIfProjectIsNotOpened();
-        this.throwIffDocumentIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return Promise.resolve();
+        }
+        if (!this._openDocument) {
+          commandInvocation.context.fail(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
+          return Promise.resolve();
+        }
         return this.handleRequestHoverText(commandInvocation);
       }
     });
@@ -87,25 +113,17 @@ export abstract class ProjectKernel extends polyglotNotebooks.Kernel {
     this.registerCommandHandler({
       commandType: polyglotNotebooks.RequestSignatureHelpType,
       handle: (commandInvocation: polyglotNotebooks.IKernelCommandInvocation) => {
-        this.throwIfProjectIsNotOpened();
-        this.throwIffDocumentIsNotOpened();
+        if (!this._project) {
+          commandInvocation.context.fail(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
+          return Promise.resolve();
+        }
+        if (!this._openDocument) {
+          commandInvocation.context.fail(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
+          return Promise.resolve();
+        }
         return this.handleRequestSignatureHelp(commandInvocation);
       }
     });
-  }
-
-  protected throwIfProjectIsNotOpened() {
-    if (!this._project) {
-      // todo : align error message with .NET
-      throw new Error(`Project must be opened, send the command '${polyglotNotebooks.OpenProjectType}' first.`);
-    }
-  }
-
-  protected throwIffDocumentIsNotOpened() {
-    if (!this._openDocument) {
-      // todo : align error message with .NET
-      throw new Error(`Document must be opened, send the command '${polyglotNotebooks.OpenDocumentType}' first.`);
-    }
   }
 
   protected abstract handleOpenProject(commandInvocation: polyglotNotebooks.IKernelCommandInvocation): Promise<void>;
