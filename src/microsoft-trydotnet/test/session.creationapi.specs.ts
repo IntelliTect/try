@@ -1,16 +1,16 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as chai from "chai";
-import * as chaiAsPromised from "chai-as-promised";
+
+import { expect, use } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import { Configuration, createSessionWithProjectAndOpenDocument } from "../src/index";
 import { buildSimpleIFrameDom, getEditorIFrame } from "./domUtilities";
 import { notifyEditorReady, registerForOpeDocument, registerForOpenProject } from "./messagingMocks";
 import * as polyglotNotebooks from "@microsoft/polyglot-notebooks";
 import { areSameFile } from "../src/documentId";
 
-chai.use(chaiAsPromised);
-chai.should();
+use(chaiAsPromised);
 
 describe("a user", () => {
     let configuration: Configuration;
@@ -40,7 +40,7 @@ describe("a user", () => {
                 "program.cs");
 
             const iframeUrl = new URL(editorIFrame.getAttribute("src")!);
-            iframeUrl.searchParams.get("correlationContext").should.equal("0123456789abcdef0123456789abcdef");
+            expect(iframeUrl.searchParams.get("correlationContext")).to.equal("0123456789abcdef0123456789abcdef");
 
             registerForOpenProject(configuration, editorIFrame, dom.window, (files) => {
                 return files.map(f => {
@@ -60,7 +60,7 @@ describe("a user", () => {
 
             notifyEditorReady(configuration, dom.window);
             const session = await awaitableSession;
-            session.should.not.be.null;
+            expect(session).not.to.be.null;
         });
 
         it("can create a session with initial project", async () => {
@@ -96,7 +96,7 @@ describe("a user", () => {
 
             notifyEditorReady(configuration, dom.window);
             let session = await awaitableSession;
-            session.should.not.be.null;
+            expect(session).not.to.be.null;
         });
 
         it("can create a session with initial project with regions", async () => {
@@ -134,7 +134,7 @@ describe("a user", () => {
             notifyEditorReady(configuration, dom.window);
 
             let session = await awaitableSession;
-            session.should.not.be.null;
+            expect(session).not.to.be.null;
         });
     });
 
