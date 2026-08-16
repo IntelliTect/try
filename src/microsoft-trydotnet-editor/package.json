@@ -37,7 +37,7 @@
     "eslint": "^10.8.1",
     "file-loader": "6.2.0",
     "html-webpack-plugin": "^5.6.6",
-    "jsdom": "^29.0.1",
+    "jsdom": "^30.0.1",
     "mocha": "11.7.5",
     "mocha-multi-reporters": "1.5.1",
     "mocha-trx-reporter": "3.3.1",
@@ -45,7 +45,7 @@
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
     "tmp": "^0.2.7",
-    "ts-loader": "^9.5.4",
+    "ts-loader": "^9.6.2",
     "ts-mocha": "^11.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
@@ -53,8 +53,8 @@
     "webpack-cli": "7.0.2"
   },
   "dependencies": {
-    "@microsoft/polyglot-notebooks": "1.0.441801",
-    "monaco-editor": "0.33.0",
+    "@microsoft/polyglot-notebooks": "1.0.740304",
+    "monaco-editor": "0.56.0",
     "rxjs": "7.8.2",
     "uuid": "14.0.1"
   },

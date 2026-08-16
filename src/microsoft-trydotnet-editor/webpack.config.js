@@ -5,14 +5,15 @@ module.exports = {
 	mode: 'development',
 	entry: {
 		app: './src/index.ts',
-		'editor.worker': 'monaco-editor/esm/vs/editor/editor.worker.js',
-		'json.worker': 'monaco-editor/esm/vs/language/json/json.worker',
-		'css.worker': 'monaco-editor/esm/vs/language/css/css.worker',
-		'html.worker': 'monaco-editor/esm/vs/language/html/html.worker',
-		'ts.worker': 'monaco-editor/esm/vs/language/typescript/ts.worker'
+		'editor.worker': 'monaco-editor/editor/editor.worker.js',
+		'json.worker': 'monaco-editor/language/json/json.worker.js',
+		'css.worker': 'monaco-editor/language/css/css.worker.js',
+		'html.worker': 'monaco-editor/language/html/html.worker.js',
+		'ts.worker': 'monaco-editor/language/typescript/ts.worker.js'
 	},
 	resolve: {
-		extensions: ['.ts', '.js']
+		extensions: ['.ts', '.js'],
+		conditionNames: ['import', 'require', 'default']
 	},
 	output: {
 		globalObject: 'self',

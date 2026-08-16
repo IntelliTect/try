@@ -16,15 +16,15 @@
     "@rollup/plugin-node-resolve": "16.0.3",
     "@types/chai": "5.2.3",
     "@types/chai-as-promised": "^8.0.2",
-    "@types/jsdom": "^28.0.3",
+    "@types/jsdom": "^30.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.2.0",
     "chai": "6.2.2",
     "chai-as-promised": "8.0.2",
-    "jsdom": "29.1.1",
+    "jsdom": "30.0.1",
     "lodash": "4.18.1",
     "mkdirp": "3.0.1",
-    "mocha": "11.7.6",
+    "mocha": "11.8.0",
     "mocha-multi-reporters": "1.5.1",
     "mocha-trx-reporter": "3.3.1",
     "requirejs": "^2.3.8",
@@ -52,7 +52,7 @@
     "ciMinify": "uglifyjs dist/trydotnet.js --source-map"
   },
   "dependencies": {
-    "@microsoft/polyglot-notebooks": "1.0.722201",
+    "@microsoft/polyglot-notebooks": "1.0.740304",
     "es6-promise": "4.2.8",
     "rxjs": "7.8.2",
     "uuid": "^14.0.1"

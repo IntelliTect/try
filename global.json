@@ -7,8 +7,5 @@
   "tools": {
     "dotnet": "10.0.302",
     "rollForward": "latestMinor"
-  },
-  "msbuild-sdks": {
-    "Microsoft.DotNet.Arcade.Sdk": "8.0.0-beta.26371.5"
   }
 }
