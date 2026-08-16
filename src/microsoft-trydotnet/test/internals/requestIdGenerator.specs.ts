@@ -1,14 +1,12 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as chai from "chai";
+import { expect } from "chai";
 import { buildSimpleIFrameDom } from "../domUtilities";
 import * as trydotnet from "../../src/index";
 import { IFrameMessageBus } from "../../src/internals/messageBus";
 import { configureEmbeddableEditorIFrame } from "../../src/htmlDomHelpers";
 import { RequestIdGenerator } from "../../src/internals/requestIdGenerator";
-
-chai.should();
 
 describe("a request id generator", () => {
 
@@ -26,6 +24,6 @@ describe("a request id generator", () => {
 
         let opId = await generator.getNewRequestId();
 
-        opId.should.contain("trydotnetjs.session");
+        expect(opId).to.contain("trydotnetjs.session");
     });
 });

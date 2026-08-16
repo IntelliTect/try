@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as chai from "chai";
+import { expect } from "chai";
 import { Configuration, configureEmbeddableEditorIFrame } from "../src/index";
 import { buildSimpleIFrameDom } from "./domUtilities";
 import { JSDOM } from "jsdom";
@@ -10,7 +10,6 @@ import { ApiMessage, RUN_RESPONSE, RUN_REQUEST, SERVICE_ERROR_RESPONSE, } from "
 import { registerForRunRequest, registerForLongRunRequest, notifyRunReadyWithId, registerForOpenProject } from "./messagingMocks";
 import { createReadySession } from "./sessionFactory";
 import * as polyglotNotebooks from "@microsoft/polyglot-notebooks";
-chai.should();
 
 describe("a user", () => {
 
@@ -145,7 +144,7 @@ describe("a user", () => {
                 session.openProject({ package: "console", files: [{ name: "program.cs", content: "" }] });
 
                 let subscriptions = session.subscribeToOutputEvents((event) => {
-                    event.stdout!.should.be.deep.equal(["line one", "line two"]);
+                    expect(event.stdout!).to.deep.equal(["line one", "line two"]);
                     done();
                 });
                 session.run();

@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as chai from "chai";
 import { Workspace } from "../../src/internals/workspace";
 import { createProject } from "../../src";
 import { FakeMonacoTextEditor } from "../fakes/fakeMonacoTextEditor";
@@ -10,13 +9,12 @@ import { expect } from "chai";
 import { RequestIdGenerator } from "../../src/internals/requestIdGenerator";
 import * as polyglotNotebooks from "@microsoft/polyglot-notebooks";
 import * as newContract from "../../src/newContract";
-chai.should();
 
 describe("a workspace", () => {
 
     it("is not marked as modified at creation", () => {
         let ws = new Workspace(new FakeMessageBus("0"), new RequestIdGenerator());
-        ws.isModified().should.be.false;
+        expect(ws.isModified()).to.be.false;
     });
 
     it("is not marked as modified when propulated from a project", async () => {
@@ -53,7 +51,7 @@ describe("a workspace", () => {
 
         let project = await createProject({ packageName: "console", files: [{ name: "program.cs", content: "the program" }, { name: "otherFile.cs", content: "other file content" }] });
         await ws.fromProject(project);
-        ws.isModified().should.be.false;
+        expect(ws.isModified()).to.be.false;
     });
 
 
@@ -103,7 +101,7 @@ describe("a workspace", () => {
         let project = await createProject({ packageName: "console", files: [{ name: "program.cs", content: "the program" }, { name: "otherFile.cs", content: "other file content" }] });
         await ws.fromProject(project);
         await ws.openDocument({ fileName: "program.cs" });
-        ws.isModified().should.be.false;
+        expect(ws.isModified()).to.be.false;
     });
 
     it("is not marked as modified when a document is opened again", async () => {
@@ -152,7 +150,7 @@ describe("a workspace", () => {
         await ws.fromProject(project);
         let doc = await ws.openDocument({ fileName: "program.cs" });
         ws.toOpenProjectRequests();
-        ws.isModified().should.be.false;
+        expect(ws.isModified()).to.be.false;
         doc = await ws.openDocument({ fileName: "program.cs" });
     });
 
@@ -203,7 +201,7 @@ describe("a workspace", () => {
         await ws.fromProject(project);
         let doc = await ws.openDocument({ fileName: "program.cs" });
         doc.setContent("modified content");
-        ws.isModified().should.be.true;
+        expect(ws.isModified()).to.be.true;
     });
 
     it("generates openProject request object", async () => {
@@ -253,9 +251,9 @@ describe("a workspace", () => {
         let doc = await ws.openDocument({ fileName: "program.cs" });
         doc.setContent("modified content");
         let opr = ws.toOpenProjectRequests();
-        opr.should.not.be.null;
-        opr.project.should.not.be.null;
-        opr.project.files[0].should.not.be.null;
+        expect(opr).not.to.be.null;
+        expect(opr.project).not.to.be.null;
+        expect(opr.project.files[0]).not.to.be.null;
     });
 
     it("can open a document and set its content", async () => {
@@ -312,7 +310,7 @@ describe("a workspace", () => {
         await ws.fromProject(project);
         let doc = await ws.openDocument({ fileName: "program.cs", content: "content override" });
         expect(doc).not.to.be.null;
-        doc.getContent().should.be.equal("content override");
+        expect(doc.getContent()).to.equal("content override");
     });
 
     it("can open a document in the editor and set its content", async () => {
@@ -370,9 +368,9 @@ describe("a workspace", () => {
         await ws.fromProject(project);
         let doc = await ws.openDocument({ fileName: "program.cs", textEditor: editorZero, content: "content override" });
         expect(doc).not.to.be.null;
-        doc.getContent().should.be.equal("content override");
-        doc.currentEditor().should.not.be.null;
-        doc.currentEditor().id().should.be.equal("0");
-        editorZero.content.should.be.equal(doc.getContent());
+        expect(doc.getContent()).to.equal("content override");
+        expect(doc.currentEditor()).not.to.be.null;
+        expect(doc.currentEditor().id()).to.equal("0");
+        expect(editorZero.content).to.equal(doc.getContent());
     });
 });

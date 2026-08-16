@@ -1,13 +1,13 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as chai from "chai";
+
+import { expect } from "chai";
 import { MonacoTextEditor } from "../../src/internals/monacoTextEditor";
 import { FakeMessageBus } from "../fakes/fakeMessageBus";
 import { FakeIdGenerator } from "../fakes/fakeIdGenerator";
 import * as newContract from "../../src/newContract";
 
-chai.should();
 
 describe("a monaco editor", () => {
 
@@ -25,8 +25,8 @@ describe("a monaco editor", () => {
         let messages: { type: string, requestId?: string }[] = [];
         bus.requests.subscribe({ next: m => messages.push(m) });
         editor.setTheme("different theme");
-        messages.should.not.be.empty;
-        messages[0].type.should.equal(newContract.ConfigureMonacoEditorType);
+        expect(messages).to.not.be.empty;
+        expect(messages[0].type).to.equal(newContract.ConfigureMonacoEditorType);
     });
 
     it("can set the theme as object", () => {
@@ -44,9 +44,9 @@ describe("a monaco editor", () => {
                 }]
             }
         });
-        messages.should.not.be.empty;
-        messages[0].type.should.equal(newContract.DefineMonacoEditorThemesType);
-        (messages[0] as any).themes.should.deep.equal({
+        expect(messages).to.not.be.empty;
+        expect(messages[0].type).to.equal(newContract.DefineMonacoEditorThemesType);
+        expect((messages[0] as any).themes).to.deep.equal({
             "different theme": {
                 base: 'vs-dark',
                 inherit: true,
@@ -57,7 +57,7 @@ describe("a monaco editor", () => {
                 }]
             }
         });
-        messages[1].type.should.equal(newContract.ConfigureMonacoEditorType);
+        expect(messages[1].type).to.equal(newContract.ConfigureMonacoEditorType);
     });
 
     it("can set the editor options", () => {
@@ -68,10 +68,10 @@ describe("a monaco editor", () => {
                 enabled: false
             }
         });
-        messages.should.not.be.empty;
-        messages[0].type.should.equal(newContract.ConfigureMonacoEditorType);
-        messages[0].type.should.equal(newContract.ConfigureMonacoEditorType);
-        (messages[0] as any).editorOptions.minimap.should.deep.equal(
+        expect(messages).to.not.be.empty;
+        expect(messages[0].type).to.equal(newContract.ConfigureMonacoEditorType);
+        expect(messages[0].type).to.equal(newContract.ConfigureMonacoEditorType);
+        expect((messages[0] as any).editorOptions.minimap).to.deep.equal(
             {
                 enabled: false
             });
@@ -88,14 +88,14 @@ describe("a monaco editor", () => {
                 }
             }
         });
-        messages.should.not.be.empty;
-        messages[0].type.should.equal(newContract.ConfigureMonacoEditorType);
-        (messages[0] as any).editorOptions.minimap.should.deep.equal(
+        expect(messages).to.not.be.empty;
+        expect(messages[0].type).to.equal(newContract.ConfigureMonacoEditorType);
+        expect((messages[0] as any).editorOptions.minimap).to.deep.equal(
             {
                 enabled: false
             });
-        messages[1].type.should.equal(newContract.ConfigureMonacoEditorType);
-        (messages[1] as any).theme.should.equal("different theme");
+        expect(messages[1].type).to.equal(newContract.ConfigureMonacoEditorType);
+        expect((messages[1] as any).theme).to.equal("different theme");
     });
 
 });
