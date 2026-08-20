@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-bookworm-slim AS node-build
+FROM node:26-bookworm-slim AS node-build
 WORKDIR /App
 
 # Build javascript library. The npm cache mount speeds up repeated local builds.
