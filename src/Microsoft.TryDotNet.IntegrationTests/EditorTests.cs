@@ -15,6 +15,7 @@ using Xunit.Abstractions;
 namespace Microsoft.TryDotNet.IntegrationTests;
 
 [LogToPocketLogger(FileNameEnvironmentVariable = "POCKETLOGGER_LOG_PATH")]
+[Trait("TestType", "Integration")]
 public class EditorTests : PlaywrightTestBase
 {
     public EditorTests(IntegratedServicesFixture services, ITestOutputHelper output) : base(services, output)
@@ -341,11 +342,13 @@ int i = ""NaN"";
 
         }, new PageRunAndWaitForConsoleMessageOptions()
         {
-            Predicate = message => message.Text.Contains("[MonacoEditorAdapter.setMarkers]"),
+            // Skip the initial empty setMarkers([]) call that Monaco fires to clear previous
+            // markers; wait for a non-empty call that actually contains diagnostic data.
+            Predicate = message => message.Text.Contains("[MonacoEditorAdapter.setMarkers]") && !message.Text.Contains(": []"),
             Timeout = Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(10).TotalMilliseconds
         });
 
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        await Task.Delay(TimeSpan.FromSeconds(3));
 
         var diagnosticMarker = page.Locator("div .squiggly-error");
         await diagnosticMarker.IsVisibleAsync();
