@@ -58,6 +58,11 @@
     "rxjs": "7.8.2",
     "uuid": "14.0.1"
   },
+  "overrides": {
+    "node-trx": {
+      "uuid": "11.1.0"
+    }
+  },
   "mocha": {
     "ui": "bdd",
     "timeout": "10000",
