@@ -54,7 +54,7 @@
     "@microsoft/polyglot-notebooks": "1.0.740304",
     "es6-promise": "4.2.8",
     "rxjs": "7.8.2",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.2"
   },
   "mocha": {
     "ui": "bdd",
