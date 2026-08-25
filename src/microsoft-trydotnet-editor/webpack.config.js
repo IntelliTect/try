@@ -15,11 +15,19 @@ module.exports = {
 		extensions: ['.ts', '.js'],
 		conditionNames: ['import', 'require', 'default']
 	},
+	ignoreWarnings: [
+		(warning) =>
+			warning.module?.resource?.includes('@microsoft/polyglot-notebooks/dist/setup.js') &&
+			warning.message?.includes('require function is used in a way in which dependencies cannot be statically extracted')
+	],
 	output: {
 		globalObject: 'self',
 		filename: '[name].bundle.js',
 		path: path.resolve(__dirname, 'dist'),
 		clean: true
+	},
+	performance: {
+		hints: false
 	},
 	module: {
 		rules: [
