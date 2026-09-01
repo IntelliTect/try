@@ -38,7 +38,7 @@ public class TryDotNetJsIntegrationTests : PlaywrightTestBase
 
         var pageUri = new Uri(QueryHelpers.AddQueryString(new Uri(learnRoot,"DocsHost.html").ToString(), param!));
         await page.GotoAsync(pageUri.ToString());
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForLoadStateAsync(LoadState.Load);
         
         await page.FindEditor();
     }
@@ -62,7 +62,7 @@ public class TryDotNetJsIntegrationTests : PlaywrightTestBase
 
         var pageUri = new Uri(QueryHelpers.AddQueryString(new Uri(learnRoot, "DocsHost.html").ToString(), param!));
         await page.GotoAsync(pageUri.ToString());
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForLoadStateAsync(LoadState.Load);
 
         var dotnetOnline = new DotNetOnline(page);
 
@@ -93,7 +93,7 @@ public class TryDotNetJsIntegrationTests : PlaywrightTestBase
 
         var pageUri = new Uri(QueryHelpers.AddQueryString(new Uri(learnRoot, "DocsHost.html").ToString(), param!));
         await page.GotoAsync(pageUri.ToString());
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForLoadStateAsync(LoadState.Load);
 
         var dotnetOnline = new DotNetOnline(page);
 
