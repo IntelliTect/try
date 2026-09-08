@@ -17,6 +17,6 @@
     "http-server": "14.1.1",
     "rollup": "4.63.1",
     "rollup-plugin-typescript2": "^0.37.0",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }
