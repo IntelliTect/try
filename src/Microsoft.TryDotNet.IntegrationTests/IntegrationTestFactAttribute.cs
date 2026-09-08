@@ -19,10 +19,7 @@ namespace Microsoft.TryDotNet.IntegrationTests
             {
                 case "1":
                 case "true":
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    {
-                        Skip = string.IsNullOrWhiteSpace(skipReason) ? "Ignored on Linux" : skipReason;
-                    }
+                    // Run tests
                     break;
                 default:
                     Skip = $"Skipping integration tests because environment variable '{EnvironmentVariableName}' was not 'true' or '1'.";

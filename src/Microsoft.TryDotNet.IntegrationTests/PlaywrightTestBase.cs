@@ -32,7 +32,10 @@ public abstract class PlaywrightTestBase : IDisposable
     protected async Task<IPage> NewPageAsync()
     {
         var playwright = await Services.GetPlaywrightAsync();
-        return await playwright.Browser.NewPageAsync();
+        var page = await playwright.Browser.NewPageAsync();
+        // Firefox needs more time to reach NetworkIdle due to Blazor WASM loading.
+        page.SetDefaultNavigationTimeout(90_000f);
+        return page;
     }
 
     protected async Task<Uri> TryDotNetUrlAsync()

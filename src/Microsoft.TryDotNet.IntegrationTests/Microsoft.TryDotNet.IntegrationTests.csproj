@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Assent" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.Playwright" />
@@ -73,6 +77,5 @@ public static class BuildProperties
           Outputs="$(PublishLocation)\Microsoft.TryDotNet.dll">
     <Exec Command="dotnet publish -o $(PublishLocation)" WorkingDirectory="$(MSBuildThisFileDirectory)..\Microsoft.TryDotNet" />
   </Target>
-
 </Project>
   
