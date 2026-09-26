@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 
@@ -54,34 +53,7 @@ public class PlaywrightSession : IDisposable
 
         var browser = await selectBrowserType(session).LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser");
 
-        await LogBrowserInfoAsync(browserName, browser);
-
         return new PlaywrightSession(session, browser);
-    }
-
-    // Browser behavior (e.g. which key bindings Monaco picks) depends on what the browser reports
-    // about itself, which doesn't always match the host OS, so record it in the test output.
-    private static async Task LogBrowserInfoAsync(string browserName, IBrowser browser)
-    {
-        var page = await browser.NewPageAsync();
-        try
-        {
-            var userAgent = await page.EvaluateAsync<string>("() => navigator.userAgent");
-            var platform = await page.EvaluateAsync<string>("() => navigator.platform");
-            var info = $"browser: {browserName} {browser.Version}; navigator.platform: {platform}; navigator.userAgent: {userAgent}";
-            Console.WriteLine($"[PlaywrightSession] {info}");
-
-            // dotnet test doesn't surface console output from the test host, so in GitHub Actions
-            // also write it to the job summary.
-            if (Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } summaryPath)
-            {
-                await File.AppendAllTextAsync(summaryPath, $"`{info}`{Environment.NewLine}");
-            }
-        }
-        finally
-        {
-            await page.CloseAsync();
-        }
     }
 
     public void Dispose() => _playwright.Dispose();
