@@ -139,15 +139,12 @@ jobs:
           test-outcomes: 'Failed'
           artifact-name: 'windows-test-playlists'
 
-  integration-tests:
+  integration-tests-matrix:
     # Integration tests use Playwright and are gated behind RunIntegrationTests=true.
     # The BROWSER environment variable selects the Playwright browser.
     name: integration-tests (${{ matrix.os }}, ${{ matrix.browser }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    # Only legs marked `gate: true` can fail the job (and block deployment); the
-    # others report results without blocking until they are proven stable.
-    continue-on-error: ${{ matrix.gate != true }}
     strategy:
       fail-fast: false
       matrix:
@@ -158,10 +155,6 @@ jobs:
           # shipping browser, since Safari isn't available on Windows.
           - os: windows-latest
             browser: webkit
-        include:
-          - os: windows-latest
-            browser: chromium
-            gate: true
 
     steps:
       - uses: actions/checkout@v7
@@ -203,6 +196,20 @@ jobs:
             artifacts/logs/
             TestResults/
           if-no-files-found: ignore
+
+  integration-tests:
+    # Single status check that summarizes the matrix, so required status checks
+    # and deploy dependencies don't need to list every OS/browser combination.
+    if: always()
+    needs: integration-tests-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check integration test matrix result
+        run: |
+          if [ "${{ needs.integration-tests-matrix.result }}" != "success" ]; then
+            echo "::error::Integration test matrix result: ${{ needs.integration-tests-matrix.result }}"
+            exit 1
+          fi
 
   deploy-development:
     if: github.ref == 'refs/heads/main'
