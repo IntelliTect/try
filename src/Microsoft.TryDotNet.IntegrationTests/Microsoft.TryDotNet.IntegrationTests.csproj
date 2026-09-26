@@ -5,7 +5,8 @@
     <Nullable>enable</Nullable>
     <Deterministic Condition="'$(NCrunch)' == '1'">false</Deterministic>
     <GeneratedFileName>GeneratedLocation.cs</GeneratedFileName>
-    <PublishLocation>$(MSBuildThisFileDirectory)bin\$(Configuration)\tool</PublishLocation>
+    <PublishLocation>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', 'bin', '$(Configuration)', 'tool'))</PublishLocation>
+    <LearnMockSitePath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'microsoft-learn-mock', 'site'))</LearnMockSitePath>
     <IsPackable>false</IsPackable>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
@@ -54,7 +55,7 @@ namespace Microsoft.TryDotNet.IntegrationTests%3b
 public static class BuildProperties
 {
   public const string TryDotNetPublishLocation = @"$(PublishLocation)"%3b
-  public const string LearnMockSitePath = @"$(MSBuildThisFileDirectory)..\microsoft-learn-mock\site\"%3b
+  public const string LearnMockSitePath = @"$(LearnMockSitePath)"%3b
 }
 ]]></GeneratedContent>
     </PropertyGroup>
@@ -70,7 +71,7 @@ public static class BuildProperties
   </Target>
   <Target Name="PublishTool" BeforeTargets="CoreCompile"
           Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' != 'false'"
-          Outputs="$(PublishLocation)\Microsoft.TryDotNet.dll">
+          Outputs="$(PublishLocation)Microsoft.TryDotNet.dll">
     <Exec Command="dotnet publish -o $(PublishLocation)" WorkingDirectory="$(MSBuildThisFileDirectory)..\Microsoft.TryDotNet" />
   </Target>
 
