@@ -96,7 +96,7 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
-        await editor.PressAsync("Control+a");
+        await editor.PressAsync("ControlOrMeta+a");
         await editor.PressAsync("Delete");
     }
 
