@@ -324,21 +324,18 @@ public class EditorTests : PlaywrightTestBase
         var editor = await page.FindEditor();
         await editor.FocusAsync();
 
-        await page.RunAndWaitForConsoleMessageAsync(async () =>
-        {
-            await editor.PressSequentiallyAsync(@"/////////////////////////
+        await editor.PressSequentiallyAsync(@"/////////////////////////
 int i = ""NaN"";
 /////////////////////////".Replace("\r\n", "\n"), new LocatorPressSequentiallyOptions { Delay = 30 });
 
-            await editor.PressAsync("Enter", new LocatorPressOptions { Delay = 0.5f });
+        await editor.PressAsync("Enter", new LocatorPressOptions { Delay = 0.5f });
 
-        }, new PageRunAndWaitForConsoleMessageOptions()
-        {
-            Predicate = message => message.Text.Contains("[MonacoEditorAdapter.setMarkers]"),
-            Timeout = Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(10).TotalMilliseconds
-        });
-
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        // Markers are set more than once as the code changes (including an empty set after the
+        // editor is cleared), so wait for the diagnostic itself rather than the first setMarkers call.
+        await page.WaitForFunctionAsync(
+            "() => trydotnetEditor.getEditor().getMarkers().some(m => m.message.includes('CS0029'))",
+            null,
+            new PageWaitForFunctionOptions { Timeout = Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(10).TotalMilliseconds });
 
         var diagnosticMarker = page.Locator("div .squiggly-error");
         await diagnosticMarker.IsVisibleAsync();

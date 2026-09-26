@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 
@@ -67,7 +68,15 @@ public class PlaywrightSession : IDisposable
         {
             var userAgent = await page.EvaluateAsync<string>("() => navigator.userAgent");
             var platform = await page.EvaluateAsync<string>("() => navigator.platform");
-            Console.WriteLine($"[PlaywrightSession] browser: {browserName} {browser.Version}; navigator.platform: {platform}; navigator.userAgent: {userAgent}");
+            var info = $"browser: {browserName} {browser.Version}; navigator.platform: {platform}; navigator.userAgent: {userAgent}";
+            Console.WriteLine($"[PlaywrightSession] {info}");
+
+            // dotnet test doesn't surface console output from the test host, so in GitHub Actions
+            // also write it to the job summary.
+            if (Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } summaryPath)
+            {
+                await File.AppendAllTextAsync(summaryPath, $"`{info}`{Environment.NewLine}");
+            }
         }
         finally
         {
