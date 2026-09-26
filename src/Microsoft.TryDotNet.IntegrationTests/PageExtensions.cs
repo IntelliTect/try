@@ -91,13 +91,36 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         return text;
     }
 
+    private static float ReadyTimeout => Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(2).TotalMilliseconds;
+
+    // Waits for the editor bootstrapper to finish; it sets window.trydotnetEditor right
+    // before posting HostEditorReady. This avoids LoadState.NetworkIdle, which never settles
+    // reliably in some browsers (notably Firefox) on the editor page.
+    public static async Task WaitForEditorReadyAsync(this IPage page)
+    {
+        await page.WaitForFunctionAsync("() => window.trydotnetEditor !== undefined", null, new PageWaitForFunctionOptions { Timeout = ReadyTimeout });
+    }
+
+    // The WASM runner appends this sentinel once it is ready to accept wasmRunner-command messages.
+    public static async Task WaitForWasmRunnerReadyAsync(this IPage page)
+    {
+        await page.Locator("#wasmRunner-sentinel").WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = ReadyTimeout });
+    }
+
     public static async Task ClearMonacoEditor(this IPage page)
     {
         var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
-        await editor.PressAsync("ControlOrMeta+a");
+        // Select all through the Monaco API rather than a keyboard shortcut: Monaco picks its
+        // key bindings from the browser's reported platform, so the select-all shortcut isn't
+        // consistent across browser/OS combinations (e.g. Ctrl+A didn't select all in WebKit on Linux).
+        await page.EvaluateAsync(@"() => {
+const monacoEditor = window.trydotnetEditor.editor._editor;
+monacoEditor.setSelection(monacoEditor.getModel().getFullModelRange());
+}");
         await editor.PressAsync("Delete");
+        await page.WaitForFunctionAsync("() => window.trydotnetEditor.editor._editor.getValue() === ''");
     }
 
     public static async Task<List<JsonElement>> RequestRunAsync(this IPage page, MessageInterceptor interceptor, TimeSpan? delayStart = null)

@@ -53,7 +53,26 @@ public class PlaywrightSession : IDisposable
 
         var browser = await selectBrowserType(session).LaunchAsync(browserTypeLaunchOptions).Timeout(TimeSpan.FromMinutes(5), "Timeout launching browser");
 
+        await LogBrowserInfoAsync(browserName, browser);
+
         return new PlaywrightSession(session, browser);
+    }
+
+    // Browser behavior (e.g. which key bindings Monaco picks) depends on what the browser reports
+    // about itself, which doesn't always match the host OS, so record it in the test output.
+    private static async Task LogBrowserInfoAsync(string browserName, IBrowser browser)
+    {
+        var page = await browser.NewPageAsync();
+        try
+        {
+            var userAgent = await page.EvaluateAsync<string>("() => navigator.userAgent");
+            var platform = await page.EvaluateAsync<string>("() => navigator.platform");
+            Console.WriteLine($"[PlaywrightSession] browser: {browserName} {browser.Version}; navigator.platform: {platform}; navigator.userAgent: {userAgent}");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
     }
 
     public void Dispose() => _playwright.Dispose();

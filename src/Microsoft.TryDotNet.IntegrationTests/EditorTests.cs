@@ -26,7 +26,7 @@ public class EditorTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         var isVisible = await page.Locator("div[role = \"code\"]").IsVisibleAsync();
 
         await page.TestScreenShotAsync();
@@ -37,26 +37,19 @@ public class EditorTests : PlaywrightTestBase
     [IntegrationTestFact]
     public async Task can_load_the_wasm_runner()
     {
-        var wasmRunnerLoaded = false;
         var page = await NewPageAsync();
 
-        await page.RouteAsync("**/*", async route =>
-        {
-            if (route.Request.Url.Contains("blazor.webassembly.js"))
-            {
-                wasmRunnerLoaded = true;
-            }
-
-            await route.ContinueAsync();
-        });
+        // The WASM runner loads in an iframe independently of editor readiness, so wait for its request rather than checking a flag.
+        var wasmRunnerRequest = page.WaitForRequestAsync(request => request.Url.Contains("blazor.webassembly.js"));
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.Locator("div[role = \"code\"]").IsVisibleAsync();
 
         await page.TestScreenShotAsync();
 
-        wasmRunnerLoaded.Should().BeTrue();
+        var request = await wasmRunnerRequest;
+        request.Should().NotBeNull();
     }
 
     [IntegrationTestFact]
@@ -65,7 +58,7 @@ public class EditorTests : PlaywrightTestBase
         var page = await NewPageAsync();
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.Locator("div[role = \"code\"]").IsVisibleAsync();
 
         await page.TestScreenShotAsync();
@@ -82,7 +75,7 @@ public class EditorTests : PlaywrightTestBase
         var page = await NewPageAsync();
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.Locator("div[role = \"code\"]").IsVisibleAsync();
 
         await page.TestScreenShotAsync();
@@ -104,7 +97,7 @@ public class EditorTests : PlaywrightTestBase
         var readyAwaiter = interceptor.AwaitForMessage("HostEditorReady");
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         var found = await readyAwaiter;
 
         await page.TestScreenShotAsync();
@@ -119,7 +112,7 @@ public class EditorTests : PlaywrightTestBase
         await interceptor.InstallAsync(page);
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
 
@@ -150,7 +143,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var randomValue = Guid.NewGuid().ToString("N");
@@ -194,7 +187,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
 
@@ -238,7 +231,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.TestScreenShotAsync();
         var minimap = page.Locator("div.minimap");
         var isHidden = await minimap.IsHiddenAsync();
@@ -252,7 +245,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.DispatchMessage(new
         {
             type = "ConfigureMonacoEditor",
@@ -277,7 +270,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         await page.DispatchMessage(new
         {
             type = "ConfigureMonacoEditor",
@@ -298,7 +291,7 @@ public class EditorTests : PlaywrightTestBase
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -364,7 +357,7 @@ int i = ""NaN"";
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -422,7 +415,7 @@ Console.WriteLine(""{randomValue}"");".Replace("\r\n", "\n"));
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -480,7 +473,7 @@ Console.".Replace("\r\n", "\n"));
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -544,7 +537,7 @@ Writes the current line terminator to the standard output stream.
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -601,7 +594,7 @@ Console.WriteLine(""{randomValue}"");".Replace("\r\n", "\n"));
         var interceptor = new MessageInterceptor();
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
 
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
@@ -661,7 +654,7 @@ Console.WriteLine(""{randomValue}b"");".Replace("\r\n", "\n"));
         await interceptor.InstallAsync(page);
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
 
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForEditorReadyAsync();
         var projectLoadedAwaiter = interceptor.AwaitForMessage("ProjectOpened");
         var documentOpenedAwaiter = interceptor.AwaitForMessage("DocumentOpened");
         

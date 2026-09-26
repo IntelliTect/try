@@ -24,7 +24,7 @@ public class WasmRunnerTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
         await page.GotoAsync(await TryDotNetUrlAsync() + "wasmrunner");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForWasmRunnerReadyAsync();
         await page.Locator(@"id=wasmRunner-sentinel").IsHiddenAsync();
 
         await page.TestScreenShotAsync();
@@ -35,7 +35,7 @@ public class WasmRunnerTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
         await page.GotoAsync(await TryDotNetUrlAsync() + "wasmrunner");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForWasmRunnerReadyAsync();
         await page.Locator(@"id=wasmRunner-sentinel").IsHiddenAsync();
 
         var messages = await page.ExecuteAssembly(
@@ -55,7 +55,7 @@ public class WasmRunnerTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
         await page.GotoAsync(await TryDotNetUrlAsync() + "wasmrunner");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForWasmRunnerReadyAsync();
         await page.Locator(@"id=wasmRunner-sentinel").IsHiddenAsync();
 
         var messages = await page.ExecuteAssembly(
@@ -75,7 +75,7 @@ public class WasmRunnerTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
         await page.GotoAsync(await TryDotNetUrlAsync() + "wasmrunner");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForWasmRunnerReadyAsync();
         await page.Locator(@"id=wasmRunner-sentinel").IsHiddenAsync();
 
         var messages = await page.ExecuteAssembly(
