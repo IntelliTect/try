@@ -93,9 +93,7 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
 
     private static float ReadyTimeout => Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(2).TotalMilliseconds;
 
-    // Waits for the editor bootstrapper to finish; it sets window.trydotnetEditor right
-    // before posting HostEditorReady. This avoids LoadState.NetworkIdle, which never settles
-    // reliably in some browsers (notably Firefox) on the editor page.
+    // The editor sets window.trydotnetEditor once it is ready, just before posting HostEditorReady.
     public static async Task WaitForEditorReadyAsync(this IPage page)
     {
         await page.WaitForFunctionAsync("() => window.trydotnetEditor !== undefined", null, new PageWaitForFunctionOptions { Timeout = ReadyTimeout });
@@ -112,9 +110,7 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
-        // Select all through the Monaco API rather than a keyboard shortcut: Monaco picks its
-        // key bindings from the browser's reported platform, so the select-all shortcut isn't
-        // consistent across browser/OS combinations (e.g. Ctrl+A didn't select all in WebKit on Linux).
+        // Select all via the Monaco API, since the select-all key binding varies by browser.
         await page.EvaluateAsync(@"() => {
 const monacoEditor = window.trydotnetEditor.editor._editor;
 monacoEditor.setSelection(monacoEditor.getModel().getFullModelRange());

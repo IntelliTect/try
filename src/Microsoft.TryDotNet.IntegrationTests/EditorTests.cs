@@ -39,7 +39,7 @@ public class EditorTests : PlaywrightTestBase
     {
         var page = await NewPageAsync();
 
-        // The WASM runner loads in an iframe independently of editor readiness, so wait for its request rather than checking a flag.
+        // The WASM runner loads in its own iframe, separately from the editor.
         var wasmRunnerRequest = page.WaitForRequestAsync(request => request.Url.Contains("blazor.webassembly.js"));
 
         await page.GotoAsync((await Services.GetTryDotNetServerAsync()).Url + "editor?enableLogging=true");
@@ -330,8 +330,7 @@ int i = ""NaN"";
 
         await editor.PressAsync("Enter", new LocatorPressOptions { Delay = 0.5f });
 
-        // Markers are set more than once as the code changes (including an empty set after the
-        // editor is cleared), so wait for the diagnostic itself rather than the first setMarkers call.
+        // Markers update as the code changes, so wait for the expected diagnostic.
         await page.WaitForFunctionAsync(
             "() => trydotnetEditor.getEditor().getMarkers().some(m => m.message.includes('CS0029'))",
             null,

@@ -53,8 +53,7 @@ public abstract class PlaywrightTestBase : IDisposable, IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    // The browser is shared across all tests, so close each test's pages to stop them
-    // (and their WASM runtimes) from accumulating over the run.
+    // The browser is shared across tests, so close the pages this test opened.
     public async Task DisposeAsync()
     {
         foreach (var page in _pages)

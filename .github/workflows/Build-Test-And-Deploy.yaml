@@ -151,8 +151,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         browser: [chromium, firefox, webkit]
         exclude:
-          # Playwright's Windows WebKit build (WinCairo) doesn't correspond to any
-          # shipping browser, since Safari isn't available on Windows.
+          # Safari isn't available on Windows.
           - os: windows-latest
             browser: webkit
 
@@ -198,8 +197,7 @@ jobs:
           if-no-files-found: ignore
 
   integration-tests:
-    # Single status check that summarizes the matrix, so required status checks
-    # and deploy dependencies don't need to list every OS/browser combination.
+    # Single status check for the whole matrix, used by required checks and deploy-development.
     if: always()
     needs: integration-tests-matrix
     runs-on: ubuntu-latest
