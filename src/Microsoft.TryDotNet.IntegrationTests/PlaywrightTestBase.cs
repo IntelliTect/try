@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 using Pocket;
@@ -13,9 +14,10 @@ using Xunit.Abstractions;
 namespace Microsoft.TryDotNet.IntegrationTests;
 
 [Collection(nameof(IntegratedServicesFixture))]
-public abstract class PlaywrightTestBase : IDisposable
+public abstract class PlaywrightTestBase : IDisposable, IAsyncLifetime
 {
     private readonly CompositeDisposable _disposables = new();
+    private readonly List<IPage> _pages = new();
 
     protected PlaywrightTestBase(
         IntegratedServicesFixture services,
@@ -32,7 +34,9 @@ public abstract class PlaywrightTestBase : IDisposable
     protected async Task<IPage> NewPageAsync()
     {
         var playwright = await Services.GetPlaywrightAsync();
-        return await playwright.Browser.NewPageAsync();
+        var page = await playwright.Browser.NewPageAsync();
+        _pages.Add(page);
+        return page;
     }
 
     protected async Task<Uri> TryDotNetUrlAsync()
@@ -45,6 +49,17 @@ public abstract class PlaywrightTestBase : IDisposable
     {
         var server = await Services.GetLearnServerAsync();
         return server.Url;
+    }
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    // The browser is shared across tests, so close the pages this test opened.
+    public async Task DisposeAsync()
+    {
+        foreach (var page in _pages)
+        {
+            await page.CloseAsync();
+        }
     }
 
     public void Dispose()

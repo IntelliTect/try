@@ -91,13 +91,32 @@ window.dispatchEvent(new MessageEvent(""message"", { data: request }));
         return text;
     }
 
+    private static float ReadyTimeout => Debugger.IsAttached ? 0.0f : (float)TimeSpan.FromMinutes(2).TotalMilliseconds;
+
+    // The editor sets window.trydotnetEditor once it is ready, just before posting HostEditorReady.
+    public static async Task WaitForEditorReadyAsync(this IPage page)
+    {
+        await page.WaitForFunctionAsync("() => window.trydotnetEditor !== undefined", null, new PageWaitForFunctionOptions { Timeout = ReadyTimeout });
+    }
+
+    // The WASM runner appends this sentinel once it is ready to accept wasmRunner-command messages.
+    public static async Task WaitForWasmRunnerReadyAsync(this IPage page)
+    {
+        await page.Locator("#wasmRunner-sentinel").WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = ReadyTimeout });
+    }
+
     public static async Task ClearMonacoEditor(this IPage page)
     {
         var editor = page.Locator(@"[role = ""textbox""]");
         await editor.IsVisibleAsync();
         await editor.FocusAsync();
-        await editor.PressAsync("Control+a");
+        // Select all via the Monaco API, since the select-all key binding varies by browser.
+        await page.EvaluateAsync(@"() => {
+const monacoEditor = window.trydotnetEditor.editor._editor;
+monacoEditor.setSelection(monacoEditor.getModel().getFullModelRange());
+}");
         await editor.PressAsync("Delete");
+        await page.WaitForFunctionAsync("() => window.trydotnetEditor.editor._editor.getValue() === ''");
     }
 
     public static async Task<List<JsonElement>> RequestRunAsync(this IPage page, MessageInterceptor interceptor, TimeSpan? delayStart = null)

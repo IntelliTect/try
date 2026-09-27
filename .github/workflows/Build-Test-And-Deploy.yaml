@@ -139,11 +139,21 @@ jobs:
           test-outcomes: 'Failed'
           artifact-name: 'windows-test-playlists'
 
-  integration-tests:
+  integration-tests-matrix:
     # Integration tests use Playwright and are gated behind RunIntegrationTests=true.
-    # IntegrationTestFactAttribute explicitly skips these tests on Linux, so a
-    # Windows runner is required to actually execute them.
-    runs-on: windows-latest
+    # The BROWSER environment variable selects the Playwright browser.
+    name: integration-tests (${{ matrix.os }}, ${{ matrix.browser }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+        exclude:
+          # Safari isn't available on Windows.
+          - os: windows-latest
+            browser: webkit
 
     steps:
       - uses: actions/checkout@v7
@@ -154,11 +164,16 @@ jobs:
       - name: Set up .NET environment
         uses: ./.github/actions/setup-dotnet
 
+      - name: Install Playwright browser
+        shell: pwsh
+        run: ./src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps ${{ matrix.browser }}
+
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
-        run: dotnet test --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
+        run: dotnet test src/Microsoft.TryDotNet.IntegrationTests --no-build --configuration Release --blame-hang-timeout 15m --blame-hang-dump-type full -l trx --results-directory ./TestResults
         env:
           RunIntegrationTests: true
+          BROWSER: ${{ matrix.browser }}
           POCKETLOGGER_LOG_PATH: ${{ github.workspace }}/artifacts/logs/pocketlogger.log
           TRYDOTNET_PREBUILDS_PATH: ${{ github.workspace }}/artifacts/trydotnet-prebuilds
 
@@ -168,7 +183,31 @@ jobs:
         with:
           trx-file-path: './TestResults/*.trx'
           test-outcomes: 'Failed'
-          artifact-name: 'integration-test-playlists'
+          artifact-name: 'integration-test-playlists-${{ matrix.os }}-${{ matrix.browser }}'
+
+      - name: Upload integration test diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: integration-diagnostics-${{ matrix.os }}-${{ matrix.browser }}
+          path: |
+            src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net10.0/playwright_screenshots/
+            artifacts/logs/
+            TestResults/
+          if-no-files-found: ignore
+
+  integration-tests:
+    # Single status check for the whole matrix, used by required checks and deploy-development.
+    if: always()
+    needs: integration-tests-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check integration test matrix result
+        run: |
+          if [ "${{ needs.integration-tests-matrix.result }}" != "success" ]; then
+            echo "::error::Integration test matrix result: ${{ needs.integration-tests-matrix.result }}"
+            exit 1
+          fi
 
   deploy-development:
     if: github.ref == 'refs/heads/main'
