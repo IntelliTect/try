@@ -21,7 +21,7 @@
     "@types/node": "^26.6.2",
     "chai": "6.2.2",
     "chai-as-promised": "8.0.2",
-    "jsdom": "30.0.1",
+    "jsdom": "30.1.1",
     "lodash": "4.18.1",
     "mkdirp": "3.0.1",
     "mocha": "11.8.0",
