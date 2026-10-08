@@ -56,4 +56,31 @@ describe("apiService", () => {
             (globalThis as any).fetch = originalFetch;
         }
     });
+
+    it("uses an updated correlationContext for requests after the service is created", async () => {
+        let capturedHeaders: any = null;
+        const originalFetch = globalThis.fetch;
+
+        (globalThis as any).fetch = async (_url: string, options: any) => {
+            capturedHeaders = options.headers;
+            return {
+                ok: true,
+                json: async () => ({ events: [] })
+            };
+        };
+
+        try {
+            const service = createApiService({
+                commandsUrl: new URL("https://example.org/commands"),
+                onServiceError: () => { /* no-op */ }
+            });
+            service.setCorrelationContext("fedcba9876543210fedcba9876543210");
+
+            await service([{ toJson: () => ({ commandType: "SubmitCode", command: {} }) } as any]);
+
+            expect(capturedHeaders.traceparent).to.match(/^00-fedcba9876543210fedcba9876543210-[a-f0-9]{16}-01$/);
+        } finally {
+            (globalThis as any).fetch = originalFetch;
+        }
+    });
 });

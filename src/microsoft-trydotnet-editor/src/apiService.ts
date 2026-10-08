@@ -21,13 +21,14 @@ export function createApiService(configuration: IApiServiceConfiguration): IApiS
     return createApiServiceWithConfiguration(configuration);
 }
 export interface IApiService {
-    (commands: polyglotNotebooks.KernelCommandEnvelope[]): Promise<polyglotNotebooks.KernelEventEnvelope[]>
+    (commands: polyglotNotebooks.KernelCommandEnvelope[]): Promise<polyglotNotebooks.KernelEventEnvelope[]>;
+    setCorrelationContext?: (correlationContext?: string) => void;
 }
 
 
 function createApiServiceWithConfiguration(configuration: IApiServiceConfiguration): IApiService {
-    const traceId = normalizeTraceId(configuration.correlationContext);
-    let service: IApiService = async (commands) => {
+    let correlationContext = configuration.correlationContext;
+    const service: IApiService = Object.assign(async (commands) => {
         let bodyContent = JSON.stringify({
             commands: commands.map(command => command.toJson())
         });
@@ -37,6 +38,7 @@ function createApiServiceWithConfiguration(configuration: IApiServiceConfigurati
         if (configuration.referer) {
             headers['Referer'] = configuration.referer.toString();
         }
+        const traceId = normalizeTraceId(correlationContext);
         if (traceId) {
             headers['traceparent'] = createTraceParent(traceId);
         }
@@ -63,7 +65,11 @@ function createApiServiceWithConfiguration(configuration: IApiServiceConfigurati
 
         const srcEvents = json.events as polyglotNotebooks.KernelEventEnvelopeModel[];
         return srcEvents.map(srcEvent => polyglotNotebooks.KernelEventEnvelope.fromJson(srcEvent));
-    };
+    }, {
+        setCorrelationContext: (value?: string) => {
+            correlationContext = value;
+        }
+    });
 
     return service;
 }
