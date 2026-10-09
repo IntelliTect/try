@@ -22,7 +22,7 @@ export function createApiService(configuration: IApiServiceConfiguration): IApiS
 }
 export interface IApiService {
     (commands: polyglotNotebooks.KernelCommandEnvelope[]): Promise<polyglotNotebooks.KernelEventEnvelope[]>;
-    setCorrelationContext?: (correlationContext?: string) => void;
+    setCorrelationContext?: (correlationContext?: string | null) => void;
 }
 
 
@@ -66,8 +66,12 @@ function createApiServiceWithConfiguration(configuration: IApiServiceConfigurati
         const srcEvents = json.events as polyglotNotebooks.KernelEventEnvelopeModel[];
         return srcEvents.map(srcEvent => polyglotNotebooks.KernelEventEnvelope.fromJson(srcEvent));
     }, {
-        setCorrelationContext: (value?: string) => {
-            correlationContext = value;
+        setCorrelationContext: (value?: string | null) => {
+            if (value === null || value === undefined) {
+                correlationContext = undefined;
+            } else if (typeof value === 'string') {
+                correlationContext = value;
+            }
         }
     });
 
