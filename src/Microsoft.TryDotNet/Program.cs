@@ -14,6 +14,8 @@ using Microsoft.DotNet.Interactive.CSharpProject.Build;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.TryDotNet.PeakyTests;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Peaky;
 using Pocket;
 using Serilog.Sinks.RollingFileAlternate;
@@ -33,11 +35,13 @@ public class Program
     {
         StartLogging();
 
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
+        var appInsightsConnectionString = Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar);
+        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+        if (string.IsNullOrWhiteSpace(appInsightsConnectionString) && string.IsNullOrWhiteSpace(otlpEndpoint))
         {
             Console.WriteLine(
-                $"WARNING: {AppInsightsConnectionStringEnvVar} is not set. " +
-                "Application Insights telemetry and Profiler will be inactive.");
+                $"WARNING: Neither {AppInsightsConnectionStringEnvVar} nor OTEL_EXPORTER_OTLP_ENDPOINT is set. " +
+                "OpenTelemetry export will be inactive.");
         }
 
         await EnsurePrebuildIsReadyAsync();
@@ -61,6 +65,8 @@ public class Program
     public static async Task<WebApplication> CreateWebApplicationAsync(WebApplicationOptions options)
     {
         var builder = WebApplication.CreateBuilder(options);
+        var useAzureMonitor = !string.IsNullOrWhiteSpace(builder.Configuration[AppInsightsConnectionStringEnvVar]);
+        var useOtlp = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         builder.Services.AddCors(
             opts =>
@@ -75,11 +81,29 @@ public class Program
                                });
             });
 
-        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar)))
+        if (useAzureMonitor || useOtlp)
         {
-            builder.Services.AddOpenTelemetry()
-                .UseAzureMonitor()
-                .AddAzureMonitorProfiler();
+            builder.Logging.AddOpenTelemetry(logging =>
+            {
+                logging.IncludeFormattedMessage = true;
+                logging.IncludeScopes = true;
+            });
+
+            var openTelemetry = builder.Services.AddOpenTelemetry();
+            if (useAzureMonitor)
+            {
+                openTelemetry
+                    .UseAzureMonitor()
+                    .AddAzureMonitorProfiler();
+            }
+            else
+            {
+                openTelemetry
+                    .WithTracing(tracing => tracing
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation())
+                    .UseOtlpExporter();
+            }
         }
 
         builder.Services.AddResponseCompression(compressionOptions =>

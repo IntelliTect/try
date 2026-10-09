@@ -15,6 +15,8 @@
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
     <PackageReference Include="Microsoft.DotNet.Interactive.CSharpProject" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <PackageReference Include="Peaky" />
     <PackageReference Include="pocketlogger">
       <PrivateAssets>all</PrivateAssets>
