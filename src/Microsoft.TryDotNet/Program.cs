@@ -65,8 +65,9 @@ public class Program
     public static async Task<WebApplication> CreateWebApplicationAsync(WebApplicationOptions options)
     {
         var builder = WebApplication.CreateBuilder(options);
-        var useAzureMonitor = !string.IsNullOrWhiteSpace(builder.Configuration[AppInsightsConnectionStringEnvVar]);
         var useOtlp = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+        var useAzureMonitor = !useOtlp
+            && !string.IsNullOrWhiteSpace(builder.Configuration[AppInsightsConnectionStringEnvVar]);
 
         builder.Services.AddCors(
             opts =>
