@@ -64,6 +64,21 @@ export function createWasmProjectKernel(onServiceError: (serviceError: IServiceE
       onServiceError: onServiceError
     });
 
+    const hostOrigin = configuration.refererUrl
+      ? new URL(configuration.refererUrl).origin
+      : null;
+    if (hostOrigin) {
+      window.addEventListener('message', (event) => {
+        if (event.source !== window.parent
+          || event.origin !== hostOrigin
+          || event.data?.type !== 'TryDotNetCorrelationContext') {
+          return;
+        }
+
+        apiService.setCorrelationContext?.(event.data.correlationContext);
+      });
+    }
+
 
     return new ProjectKernelWithWASMRunner("csharp", runner, apiService);
   } catch (e) {
