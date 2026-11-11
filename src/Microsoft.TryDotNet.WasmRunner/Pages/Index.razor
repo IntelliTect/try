@@ -15,7 +15,15 @@
 
             var runnerReference = DotNetObjectReference.Create(_runner);
 
-            await JS.InvokeVoidAsync("setCodeRunner", runnerReference);
+            try
+            {
+                await JS.InvokeVoidAsync("setCodeRunner", runnerReference);
+            }
+            catch (JSException)
+            {
+                runnerReference.Dispose();
+                throw;
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ public class SelfTests : IPeakyTest, IHaveTags, IApplyToApplication
 
     public async Task<Prebuild> Console_prebuild_is_ready()
     {
-        var prebuild = await Prebuild.GetOrCreateConsolePrebuildAsync(enableBuild: false);
+        var prebuild = await Program.GetOrCreateConsolePrebuildAsync(enableBuild: false);
 
         prebuild.Directory.Exists.Should().BeTrue();
 

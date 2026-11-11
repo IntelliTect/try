@@ -112,7 +112,7 @@ public class Program
             compressionOptions.EnableForHttps = true;
         });
 
-        _consolePrebuild = await Prebuild.GetOrCreateConsolePrebuildAsync(enableBuild: false);
+        _consolePrebuild = await GetOrCreateConsolePrebuildAsync(enableBuild: false);
 
         switch (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"))
         {
@@ -202,9 +202,23 @@ public class Program
         return app;
     }
 
+    public static Task<Prebuild> GetOrCreateConsolePrebuildAsync(bool enableBuild = false)
+    {
+        // Keep reference assemblies from older frameworks out of the current compilation cache.
+        var directory = new DirectoryInfo(Path.Combine(Prebuild.DefaultPrebuildsDirectory.FullName, "net11.0", "console"));
+        var builder = new PrebuildBuilder("console", directory)
+        {
+            EnableBuild = enableBuild
+        };
+        builder.UseTemplate("console");
+        builder.UseLanguageVersion("15.0");
+        builder.AddPackageReference("Newtonsoft.Json", "13.0.4");
+        return Task.FromResult(builder.GetPrebuild());
+    }
+
     private static async Task EnsurePrebuildIsReadyAsync()
     {
-        var prebuild = await Prebuild.GetOrCreateConsolePrebuildAsync(true);
+        var prebuild = await GetOrCreateConsolePrebuildAsync(enableBuild: true);
         await prebuild.EnsureReadyAsync();
     }
 

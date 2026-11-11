@@ -1,10 +1,16 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using AwesomeAssertions;
 
+using Microsoft.DotNet.Interactive.CSharpProject.Events;
 using Microsoft.Playwright;
 using Pocket.For.Xunit;
 using Xunit.Abstractions;
@@ -28,6 +34,67 @@ public class WasmRunnerTests : PlaywrightTestBase
         await page.Locator(@"id=wasmRunner-sentinel").IsHiddenAsync();
 
         await page.TestScreenShotAsync();
+    }
+
+    [IntegrationTestFact]
+    public async Task can_compile_and_run_csharp15_assembly()
+    {
+        var code = """
+            using System;
+            using System.Collections.Generic;
+
+            class Program
+            {
+                static void Main()
+                {
+                    Pet pet = new Cat("C# 15");
+                    Console.WriteLine(pet switch { Cat(var name) => name, Dog(var name) => name });
+                    HashSet<string> names = [with(StringComparer.OrdinalIgnoreCase), "Hello", "HELLO"];
+                    Console.WriteLine(names.Count);
+                }
+            }
+
+            public record Cat(string Name);
+            public record Dog(string Name);
+            public union Pet(Cat, Dog);
+            """;
+        using var client = new HttpClient { BaseAddress = await TryDotNetUrlAsync() };
+        var commands = new object[]
+        {
+            new
+            {
+                commandType = "OpenProject",
+                command = new
+                {
+                    project = new
+                    {
+                        files = new[] { new { relativeFilePath = "Program.cs", content = code } }
+                    }
+                },
+                token = "csharp15-wasm::1"
+            },
+            new { commandType = "OpenDocument", command = new { relativeFilePath = "Program.cs" }, token = "csharp15-wasm::2" },
+            new { commandType = "CompileProject", command = new { }, token = "csharp15-wasm::3" }
+        };
+        using var response = await client.PostAsJsonAsync("commands", new { commands });
+        response.EnsureSuccessStatusCode();
+
+        using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var assemblyProduced = responseJson.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Should().ContainSingle(e => e.GetProperty("eventType").GetString() == nameof(AssemblyProduced)).Which;
+        var assembly = assemblyProduced.GetProperty("event").GetProperty("assembly").GetProperty("value")
+            .GetString() ?? throw new InvalidOperationException("The compilation event did not contain an assembly.");
+
+        var page = await NewPageAsync();
+        await page.GotoAsync(await TryDotNetUrlAsync() + "wasmrunner");
+        await page.WaitForWasmRunnerReadyAsync();
+        var messages = await page.ExecuteAssembly(assembly);
+
+        messages.Should().ContainSingle(message => message.type == "wasmRunner-result")
+            .Which.result!.success.Should().BeTrue();
+        messages.Where(message => message.type == "wasmRunner-stdout")
+            .Select(message => message.message).Should().Equal("C# 15\n", "1\n");
     }
 
     [IntegrationTestFact]

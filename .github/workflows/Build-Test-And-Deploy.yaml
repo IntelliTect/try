@@ -166,7 +166,7 @@ jobs:
 
       - name: Install Playwright browser
         shell: pwsh
-        run: ./src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps ${{ matrix.browser }}
+        run: ./src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net11.0/playwright.ps1 install --with-deps ${{ matrix.browser }}
 
       - name: Run .NET Integration Tests
         id: run-dotnet-integration-tests
@@ -191,7 +191,7 @@ jobs:
         with:
           name: integration-diagnostics-${{ matrix.os }}-${{ matrix.browser }}
           path: |
-            src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net10.0/playwright_screenshots/
+            src/Microsoft.TryDotNet.IntegrationTests/bin/Release/net11.0/playwright_screenshots/
             artifacts/logs/
             TestResults/
           if-no-files-found: ignore
