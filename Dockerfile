@@ -7,7 +7,7 @@ COPY . ./
 RUN --mount=type=cache,id=try-npm,target=/root/.npm \
     /App/build-js.sh
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:11.0-azurelinux3.0 AS build-env
 WORKDIR /App
 
 # Make sure we run bash
@@ -50,7 +50,7 @@ RUN --mount=type=cache,id=try-nuget,target=/root/.nuget/packages \
     dotnet publish -c Release --no-restore -o out /App/src/Microsoft.TryDotNet
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0
+FROM mcr.microsoft.com/dotnet/sdk:11.0-azurelinux3.0
 ARG TRY_DOT_NET_BUILD_ID
 WORKDIR /App
 
