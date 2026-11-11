@@ -3,7 +3,6 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.DotNet.Interactive.CSharpProject.Build;
 using Pocket;
 using Xunit;
 
@@ -27,7 +26,7 @@ public class IntegratedServicesFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var consolePrebuild = await Prebuild.GetOrCreateConsolePrebuildAsync(true);
+        var consolePrebuild = await Program.GetOrCreateConsolePrebuildAsync(enableBuild: true);
         await consolePrebuild.EnsureReadyAsync();
     }
 

@@ -4,6 +4,7 @@
 using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.JSInterop;
 using Microsoft.TryDotNet.WasmRunner;
 using Xunit;
 
@@ -78,6 +79,59 @@ class Program
         outputs.Select(o => o.Trim()).Should().BeEquivalentTo("Hello World!");
     }
 
+    [Theory]
+    [InlineData("Out", "publishCodeRunnerStdOut")]
+    [InlineData("Error", "publishCodeRunnerStdError")]
+    public async Task It_waits_for_output_to_be_published(string consoleStream, string functionName)
+    {
+        var compilation = Compile($$"""
+            class Program
+            {
+                static void Main() => System.Console.{{consoleStream}}.WriteLine("pending output");
+            }
+            """);
+        using var stream = new MemoryStream();
+        compilation.Emit(stream).Success.Should().BeTrue();
+
+        var outputPublished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var jsRuntime = new TestJsRuntime(() => outputPublished.Task);
+        var adapter = new CodeRunnerAdapter(new CodeRunner(), jsRuntime);
+
+        var runTask = adapter.RunAssembly(Convert.ToBase64String(stream.ToArray()));
+        await jsRuntime.CallReceived.Task;
+
+        runTask.IsCompleted.Should().BeFalse();
+        jsRuntime.Identifier.Should().Be(functionName);
+        jsRuntime.Arguments.Should().Equal("pending output" + Environment.NewLine);
+
+        outputPublished.SetResult();
+        var result = await runTask;
+        result.Success.Should().Be(consoleStream == "Out");
+    }
+
+    [Theory]
+    [InlineData("Out")]
+    [InlineData("Error")]
+    public async Task It_reports_javascript_output_errors(string consoleStream)
+    {
+        var compilation = Compile($$"""
+            class Program
+            {
+                static void Main() => System.Console.{{consoleStream}}.WriteLine("output");
+            }
+            """);
+        using var stream = new MemoryStream();
+        compilation.Emit(stream).Success.Should().BeTrue();
+
+        var jsRuntime = new TestJsRuntime(() => Task.FromException(new JSException("Output publication failed")));
+        var adapter = new CodeRunnerAdapter(new CodeRunner(), jsRuntime);
+
+        var result = await adapter.RunAssembly(Convert.ToBase64String(stream.ToArray()));
+
+        result.Success.Should().BeFalse();
+        result.RunnerError.Should().Contain("Output publication failed");
+    }
+
     [Fact]
     public async Task It_provides_errors_for_missing_type_at_runtime()
     {
@@ -130,6 +184,31 @@ class D
     }
 
 
+    private sealed class TestJsRuntime(Func<Task> publishOutput) : IJSRuntime
+    {
+        public TaskCompletionSource CallReceived { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public string? Identifier { get; private set; }
+        public object?[]? Arguments { get; private set; }
+
+        public async ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
+        {
+            Identifier = identifier;
+            Arguments = args;
+            CallReceived.SetResult();
+            await publishOutput();
+            return default!;
+        }
+
+        public async ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+        {
+            Identifier = identifier;
+            Arguments = args;
+            CallReceived.SetResult();
+            await publishOutput();
+            return default!;
+        }
+    }
+
     private static Compilation Compile(string text, params MetadataReference[] additionalReferences)
     {
         var refs = new[]
@@ -138,6 +217,7 @@ class D
             MetadataReference.CreateFromFile(typeof(decimal).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Console).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
+            MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "System.Runtime.dll")),
         }.Concat(additionalReferences);
 
         return CSharpCompilation.Create("assembly.dll", new[] { CSharpSyntaxTree.ParseText(text) }, refs,

@@ -5,6 +5,8 @@ using AwesomeAssertions.Execution;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.CSharpProject.Events;
+using Microsoft.DotNet.Interactive.Events;
+using Microsoft.TryDotNet.WasmRunner;
 using Pocket;
 using Pocket.For.Xunit;
 using Xunit;
@@ -85,6 +87,153 @@ public class CommandExecutionTests : IDisposable
         var assemblyProduced = events.OfType<AssemblyProduced>().SingleOrDefault();
         assemblyProduced.Should().NotBeNull();
         assemblyProduced!.Assembly.Value.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Theory]
+    [InlineData("""
+        using System;
+        using System.Collections.Generic;
+
+        class Program
+        {
+            static void Main()
+            {
+                HashSet<string> values = [with(StringComparer.OrdinalIgnoreCase), "Hello", "HELLO", "world"];
+                Console.WriteLine(values.Count);
+            }
+        }
+        """, "2")]
+    [InlineData("""
+        using System;
+
+        class Program
+        {
+            static void Main()
+            {
+                NumberOrText value = new Number(42);
+                Console.WriteLine(value switch { Number(var number) => number.ToString(), Text(var text) => text });
+            }
+        }
+
+        public record Number(int Value);
+        public record Text(string Value);
+        public union NumberOrText(Number, Text);
+        """, "42")]
+    [InlineData("""
+        using System;
+
+        class Program
+        {
+            static void Main()
+            {
+                State state = new Open(42);
+                Console.WriteLine(state switch { Open(var value) => value.ToString(), Closed => "closed" });
+            }
+        }
+
+        public closed record class State;
+        public record class Open(int Value) : State;
+        public record class Closed : State;
+        """, "42")]
+    [InlineData("""
+        using System;
+        using System.Collections.Generic;
+        using System.Linq;
+
+        class Program
+        {
+            static void Main()
+            {
+                IEnumerable<int> values = new[] { 1, 2, 3 };
+                Console.WriteLine(values[1]);
+            }
+        }
+
+        public static class SequenceExtensions
+        {
+            extension(IEnumerable<int> sequence)
+            {
+                public int this[int index] => sequence.ElementAt(index);
+            }
+        }
+        """, "2")]
+    [InlineData("""
+        using System;
+
+        class Program
+        {
+            static void Main()
+            {
+                var count = 0;
+                outer: for (var row = 0; row < 3; row++)
+                {
+                    for (var column = 0; column < 3; column++)
+                    {
+                        count++;
+                        continue outer;
+                    }
+                }
+                Console.WriteLine(count);
+            }
+        }
+        """, "3")]
+    public async Task can_compile_and_run_csharp15_code(string code, string expectedOutput)
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateDefaultClient();
+        var escapedCode = JsonEncodedText.Encode(code).ToString();
+        var requests = $$"""
+            {
+                "commands": [
+                    {
+                        "commandType": "OpenProject",
+                        "command": {
+                            "project": {
+                                "files": [
+                                    {
+                                        "relativeFilePath": "program.cs",
+                                        "content": "{{escapedCode}}"
+                                    }
+                                ]
+                            }
+                        },
+                        "token": "csharp15::1"
+                    },
+                    {
+                        "commandType": "OpenDocument",
+                        "command": { "relativeFilePath": "program.cs" },
+                        "token": "csharp15::2"
+                    },
+                    {
+                        "commandType": "CompileProject",
+                        "command": {},
+                        "token": "csharp15::3"
+                    }
+                ]
+            }
+            """;
+        using var requestBody = JsonContent.Create(JsonDocument.Parse(requests).RootElement);
+        using var response = await client.PostAsync("commands", requestBody);
+        response.EnsureSuccessStatusCode();
+
+        using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var events = responseJson.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Select(KernelEventEnvelope.Deserialize)
+            .Select(envelope => envelope.Event)
+            .ToList();
+
+        var diagnostics = string.Join(Environment.NewLine,
+            events.OfType<DiagnosticsProduced>().SelectMany(produced => produced.Diagnostics));
+        events.OfType<CommandFailed>().Should().BeEmpty(diagnostics);
+        var assembly = events.OfType<AssemblyProduced>().Should().ContainSingle().Which.Assembly.Value;
+        var output = new List<string>();
+        var errors = new List<string>();
+        var result = await new CodeRunner().RunAssemblyEntryPoint(assembly, output.Add, errors.Add);
+
+        result.Succeeded.Should().BeTrue((result.Exception ?? result.RunnerException)?.ToString());
+        errors.Should().BeEmpty();
+        output.Select(line => line.Trim()).Should().Equal(expectedOutput);
     }
 
     [Fact]
