@@ -35,10 +35,6 @@ The API exports OpenTelemetry logs, traces, and metrics when an exporter is conf
 - **Aspire dashboard or another OTLP collector:** Set `OTEL_EXPORTER_OTLP_ENDPOINT`.
   Configure `OTEL_EXPORTER_OTLP_PROTOCOL` and `OTEL_EXPORTER_OTLP_HEADERS` if needed.
 
-No Aspire AppHost is required. Set `OTEL_SERVICE_NAME` to customize the service name.
-Container App settings are managed separately from the deployment workflow. See the
-[Aspire deployment telemetry guide](https://aspire.dev/dashboard/telemetry-after-deployment/).
-
 ## Contribution Guidelines
 
 If you find an issue or have a feature suggestion, please open an [issue](https://github.com/intellitect/try/issues/new/choose). And if you have any feature suggestions, please submit them using the "community suggestions" label.
