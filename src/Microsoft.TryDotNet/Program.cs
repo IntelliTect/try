@@ -5,8 +5,6 @@ using System.Net.Mime;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using Azure.Monitor.OpenTelemetry.AspNetCore;
-using Azure.Monitor.OpenTelemetry.Profiler;
 using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.CSharpProject;
@@ -14,8 +12,6 @@ using Microsoft.DotNet.Interactive.CSharpProject.Build;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.TryDotNet.PeakyTests;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
 using Peaky;
 using Pocket;
 using Serilog.Sinks.RollingFileAlternate;
@@ -26,23 +22,12 @@ namespace Microsoft.TryDotNet;
 
 public class Program
 {
-    private const string AppInsightsConnectionStringEnvVar = "APPLICATIONINSIGHTS_CONNECTION_STRING";
-
     private static Prebuild? _consolePrebuild;
     private static bool _loggingEnabled;
 
     public static async Task Main(string[] args)
     {
         StartLogging();
-
-        var appInsightsConnectionString = Environment.GetEnvironmentVariable(AppInsightsConnectionStringEnvVar);
-        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
-        if (string.IsNullOrWhiteSpace(appInsightsConnectionString) && string.IsNullOrWhiteSpace(otlpEndpoint))
-        {
-            Console.WriteLine(
-                $"WARNING: Neither {AppInsightsConnectionStringEnvVar} nor OTEL_EXPORTER_OTLP_ENDPOINT is set. " +
-                "OpenTelemetry export will be inactive.");
-        }
 
         await EnsurePrebuildIsReadyAsync();
 
@@ -65,9 +50,7 @@ public class Program
     public static async Task<WebApplication> CreateWebApplicationAsync(WebApplicationOptions options)
     {
         var builder = WebApplication.CreateBuilder(options);
-        var useOtlp = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-        var useAzureMonitor = !useOtlp
-            && !string.IsNullOrWhiteSpace(builder.Configuration[AppInsightsConnectionStringEnvVar]);
+        var telemetryEnabled = Observability.Configure(builder);
 
         builder.Services.AddCors(
             opts =>
@@ -81,31 +64,6 @@ public class Program
                                        .AllowAnyOrigin();
                                });
             });
-
-        if (useAzureMonitor || useOtlp)
-        {
-            builder.Logging.AddOpenTelemetry(logging =>
-            {
-                logging.IncludeFormattedMessage = true;
-                logging.IncludeScopes = true;
-            });
-
-            var openTelemetry = builder.Services.AddOpenTelemetry();
-            if (useAzureMonitor)
-            {
-                openTelemetry
-                    .UseAzureMonitor()
-                    .AddAzureMonitorProfiler();
-            }
-            else
-            {
-                openTelemetry
-                    .WithTracing(tracing => tracing
-                        .AddAspNetCoreInstrumentation()
-                        .AddHttpClientInstrumentation())
-                    .UseOtlpExporter();
-            }
-        }
 
         builder.Services.AddResponseCompression(compressionOptions =>
         {
@@ -149,6 +107,13 @@ public class Program
         }
 
         var app = builder.Build();
+
+        if (!telemetryEnabled)
+        {
+            app.Logger.LogWarning(
+                "Neither APPLICATIONINSIGHTS_CONNECTION_STRING nor OTEL_EXPORTER_OTLP_ENDPOINT is configured. " +
+                "OpenTelemetry export is inactive.");
+        }
 
         app.UseCors();
 

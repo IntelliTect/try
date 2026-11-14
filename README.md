@@ -26,6 +26,15 @@ To make your markdown files interactive, you will need the [.NET Core 3.0 SDK](h
 ## Table of Contents
 - [Getting Started with Try .NET](DotNetTryLocal.md): Interactive documentation generator for .NET Core.
 
+## Observability
+
+The API exports OpenTelemetry logs, traces, and metrics when an exporter is configured:
+
+- **Azure Monitor:** Set `APPLICATIONINSIGHTS_CONNECTION_STRING` on the Azure Container
+  App, preferably using a Key Vault-backed secret.
+- **Aspire dashboard or another OTLP collector:** Set `OTEL_EXPORTER_OTLP_ENDPOINT`.
+  Configure `OTEL_EXPORTER_OTLP_PROTOCOL` and `OTEL_EXPORTER_OTLP_HEADERS` if needed.
+
 ## Contribution Guidelines
 
 If you find an issue or have a feature suggestion, please open an [issue](https://github.com/intellitect/try/issues/new/choose). And if you have any feature suggestions, please submit them using the "community suggestions" label.
