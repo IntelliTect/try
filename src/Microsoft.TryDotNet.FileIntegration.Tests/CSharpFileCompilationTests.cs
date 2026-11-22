@@ -97,7 +97,7 @@ public class CSharpFileCompilationTests : IClassFixture<WebApplicationFactory<Pr
 
         var client = _factory.CreateDefaultClient();
 
-        var requestJson = BuildCommandPayload(fileName, fileContent);
+        var requestJson = BuildCommandPayload("Program.cs", fileContent);
         var requestBody = JsonContent.Create(JsonDocument.Parse(requestJson).RootElement);
 
         var response = await client.PostAsync("commands", requestBody);
@@ -207,7 +207,7 @@ public class CSharpFileCompilationTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     /// <summary>
-    /// Builds the JSON command payload that opens a project with a single file,
+    /// Builds the JSON command payload that replaces the console template's Program.cs,
     /// opens that file as the active document, and compiles the project.
     /// </summary>
     private static string BuildCommandPayload(string fileName, string fileContent)
