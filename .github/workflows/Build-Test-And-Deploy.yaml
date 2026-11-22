@@ -44,7 +44,7 @@ jobs:
 
       - name: Convert TRX to Playlist
         if: ${{ steps.run-dotnet-tests.outcome == 'failure' || failure() }}
-        uses: BenjaminMichaelis/trx-to-vsplaylist@v4
+        uses: BenjaminMichaelis/trx-to-vsplaylist@v5
         with:
           trx-file-path: './TestResults/*.trx'
           test-outcomes: 'Failed'
