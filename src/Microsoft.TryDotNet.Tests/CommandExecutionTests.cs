@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using System.Reflection.PortableExecutable;
 using System.Text.Json;
 using AwesomeAssertions;
 using AwesomeAssertions.Execution;
@@ -234,6 +235,201 @@ public class CommandExecutionTests : IDisposable
         result.Succeeded.Should().BeTrue((result.Exception ?? result.RunnerException)?.ToString());
         errors.Should().BeEmpty();
         output.Select(line => line.Trim()).Should().Equal(expectedOutput);
+    }
+
+    [Fact]
+    public async Task sdk_implicit_usings_compile_console_and_generic_collection_to_an_executable()
+    {
+        var events = await CompileProgramViaHttp("""
+            class Program
+            {
+                static void Main()
+                {
+                    var values = new List<int> { 1, 2, 3 };
+                    Console.WriteLine(values.Count);
+                }
+            }
+            """);
+
+        events.OfType<CommandFailed>().Should().BeEmpty();
+        var assembly = events.OfType<AssemblyProduced>().Should().ContainSingle().Which.Assembly.Value;
+        assembly.Should().NotBeNullOrWhiteSpace();
+        var bytes = Convert.FromBase64String(assembly);
+        bytes.Should().NotBeEmpty();
+
+        using var stream = new MemoryStream(bytes);
+        using var peReader = new PEReader(stream);
+        peReader.HasMetadata.Should().BeTrue();
+        peReader.PEHeaders.CorHeader.Should().NotBeNull();
+        peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().NotBe(0);
+    }
+
+    [Fact]
+    public async Task explicit_assembly_attributes_do_not_collide_with_template_metadata()
+    {
+        var events = await CompileProgramViaHttp("""
+            using System.Reflection;
+            [assembly: AssemblyTitle("Listing")]
+            [assembly: AssemblyCompany("Listing Author")]
+            [assembly: AssemblyVersion("1.2.3.4")]
+            """);
+
+        events.OfType<CommandFailed>().Should().BeEmpty();
+        events.OfType<AssemblyProduced>().Should().ContainSingle()
+            .Which.Assembly.Value.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task duplicate_submitted_assembly_attributes_remain_compilation_errors()
+    {
+        var events = await CompileProgramViaHttp("""
+            using System.Reflection;
+            [assembly: AssemblyTitle("First")]
+            [assembly: AssemblyTitle("Second")]
+            """);
+
+        events.OfType<AssemblyProduced>().Should().BeEmpty();
+        events.OfType<CommandFailed>().Should().ContainSingle()
+            .Which.Message.Should().Contain("CS0579");
+    }
+
+    [Theory]
+    [InlineData("public class Widget { public int Value { get; set; } }")]
+    [InlineData("public interface IWidget { int Value { get; } }")]
+    public async Task type_only_program_compiles_to_a_valid_library_without_an_entrypoint(string code)
+    {
+        var events = await CompileProgramViaHttp(code);
+
+        events.OfType<CommandFailed>().Should().BeEmpty();
+        var assembly = events.OfType<AssemblyProduced>().Should().ContainSingle().Which.Assembly.Value;
+        assembly.Should().NotBeNullOrWhiteSpace();
+        var bytes = Convert.FromBase64String(assembly);
+        bytes.Should().NotBeEmpty();
+
+        using var stream = new MemoryStream(bytes);
+        using var peReader = new PEReader(stream);
+        peReader.HasMetadata.Should().BeTrue();
+        peReader.PEHeaders.CoffHeader.Characteristics.Should().HaveFlag(Characteristics.Dll);
+        peReader.PEHeaders.CorHeader.Should().NotBeNull();
+        peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task compile_error_outside_the_active_region_fails_without_producing_an_assembly()
+    {
+        var events = await CompileProgramViaHttp("""
+            class Program
+            {
+                static void Main()
+                {
+                    #region active
+                    System.Console.WriteLine("valid region");
+                    #endregion
+                    int value = "not an integer";
+                }
+            }
+            """, "active");
+
+        using var _ = new AssertionScope();
+        events.OfType<AssemblyProduced>().Should().BeEmpty();
+        events.OfType<CommandFailed>().Should().ContainSingle()
+            .Which.Message.Should().Contain("CS0029");
+    }
+
+    [Fact]
+    public async Task compile_error_on_first_active_region_line_has_region_relative_position()
+    {
+        var events = await CompileProgramViaHttp("""
+            class Program
+            {
+                static void Main()
+                {
+                    #region active
+                    int value = "not an integer";
+                    #endregion
+                }
+            }
+            """, "active");
+
+        var diagnostic = events.OfType<DiagnosticsProduced>()
+            .SelectMany(produced => produced.Diagnostics)
+            .Should().ContainSingle(diagnostic => diagnostic.Code == "CS0029").Which;
+        diagnostic.LinePositionSpan.Start.Line.Should().Be(0);
+        events.OfType<CommandFailed>().Should().ContainSingle()
+            .Which.Message.Should().Contain("CS0029");
+        events.OfType<AssemblyProduced>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task multiple_entrypoints_fail_with_emit_diagnostic_without_producing_an_assembly()
+    {
+        var events = await CompileProgramViaHttp("""
+            class FirstProgram
+            {
+                static void Main() { }
+            }
+
+            class SecondProgram
+            {
+                static void Main() { }
+            }
+            """);
+
+        using var _ = new AssertionScope();
+        events.OfType<AssemblyProduced>().Should().BeEmpty();
+        events.OfType<CommandFailed>().Should().ContainSingle()
+            .Which.Message.Should().Contain("CS0017");
+    }
+
+    private static async Task<List<KernelEvent>> CompileProgramViaHttp(string code, string? regionName = null)
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateDefaultClient();
+        var escapedCode = JsonEncodedText.Encode(code).ToString();
+        var regionProperty = regionName is null
+            ? ""
+            : $", \"regionName\": {JsonSerializer.Serialize(regionName)}";
+        var requests = $$"""
+            {
+                "commands": [
+                    {
+                        "commandType": "OpenProject",
+                        "command": {
+                            "project": {
+                                "files": [
+                                    {
+                                        "relativeFilePath": "Program.cs",
+                                        "content": "{{escapedCode}}"
+                                    }
+                                ]
+                            }
+                        },
+                        "token": "compilation-regression::1"
+                    },
+                    {
+                        "commandType": "OpenDocument",
+                        "command": { "relativeFilePath": "Program.cs"{{regionProperty}} },
+                        "token": "compilation-regression::2"
+                    },
+                    {
+                        "commandType": "CompileProject",
+                        "command": {},
+                        "token": "compilation-regression::3"
+                    }
+                ]
+            }
+            """;
+        using var requestJson = JsonDocument.Parse(requests);
+        using var requestBody = JsonContent.Create(requestJson.RootElement);
+        using var response = await client.PostAsync("commands", requestBody);
+        response.EnsureSuccessStatusCode();
+
+        using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return responseJson.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Select(KernelEventEnvelope.Deserialize)
+            .Select(envelope => envelope.Event)
+            .ToList();
     }
 
     [Fact]

@@ -190,6 +190,7 @@ public class Program
     internal static CSharpProjectKernel CreateKernel()
     {
         var kernel = new CSharpProjectKernel("csharp.console", PrebuildFinder.Create(() => Task.FromResult(_consolePrebuild)));
+        new ProjectCompiler(_consolePrebuild!).Attach(kernel);
 
         if (_loggingEnabled)
         {

@@ -35,6 +35,26 @@ The API exports OpenTelemetry logs, traces, and metrics when an exporter is conf
 - **Aspire dashboard or another OTLP collector:** Set `OTEL_EXPORTER_OTLP_ENDPOINT`.
   Configure `OTEL_EXPORTER_OTLP_PROTOCOL` and `OTEL_EXPORTER_OTLP_HEADERS` if needed.
 
+## Listing compilation tests
+
+`Microsoft.TryDotNet.FileIntegration.Tests` compiles whole C# files through the API.
+Set `TRYDOTNET_LISTINGS_PATH` to prepared listing sources and
+`TRYDOTNET_LISTINGS_METADATA` to their `chapter-listings.json` to include external
+listings. Keep `TRYDOTNET_UPDATE_LISTINGS=false` when validating expectations.
+
+The harness replaces only Roslyn-parsed `#region` and `#endregion` directives with
+spaces, preserving line breaks and diagnostic positions. Presentation regions,
+including duplicate names or orphan closers, do not affect whole-file compilation;
+strings, comments, and conditional compilation directives remain unchanged. This
+normalization does not modify packaged listings or interactive region extraction.
+
+Successful compilation requires an emitted, nonempty assembly. Type-only listings
+without an entry point compile as libraries; other compilation errors still fail.
+The console project's SDK-generated implicit usings are preserved on both Windows
+and Linux. Template-generated assembly metadata is omitted so submitted assembly
+attributes do not conflict with template defaults; duplicate attributes within
+submitted source remain errors.
+
 ## Contribution Guidelines
 
 If you find an issue or have a feature suggestion, please open an [issue](https://github.com/intellitect/try/issues/new/choose). And if you have any feature suggestions, please submit them using the "community suggestions" label.

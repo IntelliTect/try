@@ -93,7 +93,7 @@ public class CSharpFileCompilationTests : IClassFixture<WebApplicationFactory<Pr
     public async Task File_compilation_matches_expectation(string fullPath, string displayName, string? chapterName)
     {
         var fileName = Path.GetFileName(fullPath);
-        var fileContent = await File.ReadAllTextAsync(fullPath);
+        var fileContent = ListingSourceNormalizer.RemoveRegions(await File.ReadAllTextAsync(fullPath));
 
         var client = _factory.CreateDefaultClient();
 
